@@ -14,16 +14,16 @@
                         warm: {
                             bg: '#FFFDF9',       /* 奶白背景 */
                             card: '#FFF8EE',     /* 淺奶油卡片 */
-                            border: '#F2E8D8',   /* 柔和的邊框 (無灰) */
-                            textDark: '#5E4B43', /* 深栗色文字 (取代深灰) */
-                            textLight: '#9E887D',/* 淺咖色文字 (取代淺灰) */
+                            border: '#F2E8D8',   /* 柔和的邊框 */
+                            textDark: '#5E4B43', /* 深栗色文字 */
+                            textLight: '#9E887D',/* 淺咖色文字 */
                             
-                            /* 明亮莫蘭迪色系 (無灰底) */
-                            mint: '#88C0BB',     /* 莫蘭迪薄荷綠 (主色/資產) */
+                            /* 明亮莫蘭迪色系 */
+                            mint: '#88C0BB',     /* 莫蘭迪薄荷綠 */
                             mintLight: '#BCE3DF',
-                            peach: '#E3A39A',    /* 莫蘭迪蜜桃粉 (主動收入) */
+                            peach: '#E3A39A',    /* 莫蘭迪蜜桃粉 */
                             peachLight: '#FAD8D3',
-                            latte: '#D4B895',    /* 莫蘭迪奶茶色 (被動收入) */
+                            latte: '#D4B895',    /* 莫蘭迪奶茶色 */
                             latteLight: '#F2DEC4',
                         }
                     }
@@ -68,9 +68,9 @@
         <!-- 頂部標題列 -->
         <header class="bg-warm-mint text-white px-6 py-5 z-20 flex justify-between items-center relative shadow-sm">
             <h1 class="text-xl font-bold tracking-wide">
-                <i class="fa-solid fa-leaf mr-2 text-white/80"></i>資產管家
+                <i class="fa-solid fa-leaf mr-2 text-white/80"></i>LuminAsset
             </h1>
-            <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide">
+            <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300">
                 <i class="fa-solid fa-spinner fa-spin mr-1"></i>讀取中
             </div>
         </header>
@@ -106,43 +106,61 @@
                     </div>
                 </div>
 
-                <!-- 資產明細列表 -->
+                <!-- 資產明細列表 (現金與股票) -->
                 <div class="bg-white rounded-3xl shadow-warm border border-warm-border p-2">
                     <div class="flex items-center justify-between p-4 border-b border-warm-border/60">
                         <div class="flex items-center gap-3">
                             <div class="w-3 h-3 rounded-full bg-warm-latteLight shadow-sm"></div>
                             <span class="text-sm font-bold text-warm-textDark">現金儲蓄</span>
                         </div>
-                        <div class="text-right">
-                            <div id="display-cash-amt" class="font-bold text-warm-textDark">$0</div>
-                            <div id="display-cash-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-4 border-b border-warm-border/60">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-warm-peach shadow-sm"></div>
-                            <span class="text-sm font-bold text-warm-textDark">股票現值</span>
-                        </div>
-                        <div class="text-right">
-                            <div id="display-stocks-amt" class="font-bold text-warm-textDark">$0</div>
-                            <div id="display-stocks-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                        <div class="text-right flex items-center gap-3">
+                            <div class="text-right">
+                                <div id="display-cash-amt" class="font-bold text-warm-textDark">$0</div>
+                                <div id="display-cash-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                            </div>
+                            <button onclick="window.openAssetModal('cash')" class="text-warm-textLight hover:text-warm-mint transition p-2">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
                         </div>
                     </div>
                     <div class="flex items-center justify-between p-4">
                         <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-warm-latte shadow-sm"></div>
-                            <span class="text-sm font-bold text-warm-textDark">其他投資</span>
+                            <div class="w-3 h-3 rounded-full bg-warm-peach shadow-sm"></div>
+                            <span class="text-sm font-bold text-warm-textDark">股票現值</span>
                         </div>
-                        <div class="text-right">
-                            <div id="display-others-amt" class="font-bold text-warm-textDark">$0</div>
-                            <div id="display-others-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                        <div class="text-right flex items-center gap-3">
+                            <div class="text-right">
+                                <div id="display-stocks-amt" class="font-bold text-warm-textDark">$0</div>
+                                <div id="display-stocks-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                            </div>
+                            <button onclick="window.openAssetModal('stocks')" class="text-warm-textLight hover:text-warm-peach transition p-2">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <button onclick="window.openAssetModal()" class="w-full bg-warm-card text-warm-mint font-bold py-4 rounded-2xl border border-warm-border hover:bg-[#FDF0DE] transition shadow-sm tracking-wide">
-                    <i class="fa-solid fa-pen mr-2"></i>編輯資產紀錄
-                </button>
+                <!-- 其他投資列表區塊 -->
+                <div>
+                    <div class="flex justify-between items-end mb-4 px-1 mt-8">
+                        <div class="flex items-center gap-3">
+                            <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
+                                <span class="w-2 h-5 bg-warm-latte rounded-full mr-2"></span>其他投資
+                            </h3>
+                            <div class="text-right hidden" id="others-summary-group">
+                                <div id="display-others-total" class="font-bold text-warm-textDark text-sm">$0</div>
+                                <div id="display-others-pct" class="text-[10px] text-warm-textLight font-medium">0%</div>
+                            </div>
+                        </div>
+                        <button onclick="window.openOtherAssetModal()" class="text-warm-latte bg-warm-latteLight/30 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm">
+                            <i class="fa-solid fa-plus mr-1"></i>新增投資
+                        </button>
+                    </div>
+                    <div id="list-other-assets" class="space-y-3">
+                        <!-- 動態產生其他投資項目 -->
+                    </div>
+                </div>
+
             </div>
 
             <!-- 第二個頁籤：收入追蹤 -->
@@ -183,8 +201,8 @@
 
                 <!-- 收入列表區塊 共用樣式 -->
                 <style>
-                    .income-card { transition: all 0.2s ease; }
-                    .income-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(94, 75, 67, 0.05); }
+                    .list-card { transition: all 0.2s ease; }
+                    .list-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(94, 75, 67, 0.05); }
                 </style>
 
                 <!-- 主動收入區塊 -->
@@ -219,36 +237,52 @@
             </div>
         </main>
 
-        <!-- 模態框：編輯資產 -->
+        <!-- 模態框：編輯基礎資產 (現金/股票) -->
         <div id="modal-assets" class="fixed inset-0 bg-[#5E4B43]/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
-                <h3 class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">編輯資產現值</h3>
+                <h3 id="asset-modal-title" class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">編輯資產現值</h3>
+                <input type="hidden" id="input-asset-type">
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">現金儲蓄</label>
+                        <label id="asset-modal-label" class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">金額</label>
                         <div class="relative">
                             <span class="absolute left-4 top-3.5 text-warm-textLight text-sm font-bold">$</span>
-                            <input type="number" id="input-cash" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">股票現值</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-3.5 text-warm-textLight text-sm font-bold">$</span>
-                            <input type="number" id="input-stocks" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">其他投資</label>
-                        <div class="relative">
-                            <span class="absolute left-4 top-3.5 text-warm-textLight text-sm font-bold">$</span>
-                            <input type="number" id="input-others" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
+                            <input type="number" id="input-asset-amt" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
                         </div>
                     </div>
                 </div>
                 <div class="flex gap-3 mt-8">
                     <button onclick="window.closeModal('assets')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
-                    <button onclick="window.saveAssets()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存</button>
+                    <button onclick="window.saveBaseAsset()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模態框：新增/編輯 其他投資 -->
+        <div id="modal-other-asset" class="fixed inset-0 bg-[#5E4B43]/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <h3 id="other-asset-modal-title" class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">紀錄其他投資</h3>
+                <input type="hidden" id="input-oa-id"> 
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">投資名稱</label>
+                        <input type="text" id="input-oa-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="如：基金、加密貨幣">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">現值金額</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3.5 text-warm-textLight text-sm font-bold">$</span>
+                            <input type="number" id="input-oa-amount" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-7 pr-3 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">備註 (選填)</label>
+                        <textarea id="input-oa-remark" rows="2" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all text-sm placeholder:text-warm-textLight/50" placeholder="如：到期日、利率..."></textarea>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button onclick="window.closeModal('other-asset')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveOtherAsset()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-latte hover:bg-[#C2A37D] transition shadow-md shadow-warm-latte/30">完成</button>
                 </div>
             </div>
         </div>
@@ -309,24 +343,88 @@
 
     </div>
 
-    <!-- Firebase 與 應用程式邏輯 -->
+    <!-- 應用程式邏輯 (加入 IndexedDB 雙層防護) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         let state = {
-            assets: { cash: 0, stocks: 0, others: 0 },
+            assets: { cash: 0, stocks: 0 },
+            otherAssets: [],    // 新增：其他投資清單 { id, name, amount, remark }
             activeIncomes: [],  
             passiveIncomes: []  
         };
 
         let auth, db, dbRef, currentUser = null;
-        let isSyncing = false;
 
+        // ----------------------------------------------------
+        // 1. 本地備份引擎 (IndexedDB)
+        // ----------------------------------------------------
+        const getLocalDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('LuminAssetDB', 2); // 版本升級至2以確保欄位更新
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('store')) {
+                        db.createObjectStore('store');
+                    }
+                };
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        };
+
+        const saveToLocal = async (data) => {
+            try {
+                const db = await getLocalDB();
+                const tx = db.transaction('store', 'readwrite');
+                tx.objectStore('store').put(data, 'app_state');
+                return new Promise(resolve => tx.oncomplete = resolve);
+            } catch(e) { console.warn("本地存檔失敗", e); }
+        };
+
+        const loadFromLocal = async () => {
+            try {
+                const db = await getLocalDB();
+                const tx = db.transaction('store', 'readonly');
+                const req = tx.objectStore('store').get('app_state');
+                return new Promise(resolve => {
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve(null);
+                });
+            } catch(e) { return null; }
+        };
+
+        // ----------------------------------------------------
+        // 2. 應用程式與雲端初始化
+        // ----------------------------------------------------
         const initApp = async () => {
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'finance-app-id';
+            setStatus("讀取中");
             const configString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+            
+            const localData = await loadFromLocal();
+            if (localData) {
+                // 資料結構遷移防呆
+                state.assets = localData.assets || { cash: 0, stocks: 0 };
+                // 處理舊資料遷移（如果舊資料有 others 數字，轉為一筆未命名投資）
+                if (state.assets.others !== undefined) {
+                    if (state.assets.others > 0 && (!localData.otherAssets || localData.otherAssets.length === 0)) {
+                        localData.otherAssets = [{
+                            id: 'legacy-others',
+                            name: '其他投資 (舊版紀錄)',
+                            amount: state.assets.others,
+                            remark: ''
+                        }];
+                    }
+                    delete state.assets.others;
+                }
+                
+                state.otherAssets = localData.otherAssets || [];
+                state.activeIncomes = localData.activeIncomes || [];
+                state.passiveIncomes = localData.passiveIncomes || [];
+                renderAll();
+            }
 
             if (configString) {
                 try {
@@ -335,77 +433,112 @@
                     auth = getAuth(app);
                     db = getFirestore(app);
 
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    const initAuth = async () => {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    };
+                    
+                    initAuth();
 
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
                             currentUser = user;
+                            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
                             dbRef = doc(db, 'artifacts', appId, 'users', user.uid, 'finance_data', 'mainDoc');
                             listenToData();
                         }
                     });
                 } catch (e) {
-                    console.error("Firebase 初始化失敗:", e);
-                    setStatus("本地存檔");
-                    renderAll();
+                    console.error("雲端初始化失敗:", e);
+                    setStatus("本地存檔模式");
                 }
             } else {
-                setStatus("離線模式");
-                renderAll(); 
+                setStatus("本地存檔模式");
             }
         };
 
+        // ----------------------------------------------------
+        // 3. 資料同步與儲存邏輯
+        // ----------------------------------------------------
         const listenToData = () => {
             if (!currentUser) return;
-            setStatus("讀取中");
             
-            onSnapshot(dbRef, (docSnap) => {
+            onSnapshot(dbRef, async (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    state.assets = data.assets || { cash: 0, stocks: 0, others: 0 };
+                    state.assets = data.assets || { cash: 0, stocks: 0 };
+                    
+                    // 雲端舊資料遷移
+                    if (state.assets.others !== undefined) {
+                        if (state.assets.others > 0 && (!data.otherAssets || data.otherAssets.length === 0)) {
+                            data.otherAssets = [{
+                                id: 'legacy-others',
+                                name: '其他投資 (舊版紀錄)',
+                                amount: state.assets.others,
+                                remark: ''
+                            }];
+                        }
+                        delete state.assets.others;
+                    }
+                    
+                    state.otherAssets = data.otherAssets || [];
                     state.activeIncomes = data.activeIncomes || [];
                     state.passiveIncomes = data.passiveIncomes || [];
+                    await saveToLocal(state); 
                     setStatus("已同步");
+                    renderAll();
                 } else {
-                    syncData(true);
+                    await syncData(true);
                 }
-                renderAll();
             }, (error) => {
-                console.error("Firestore 讀取錯誤:", error);
-                setStatus("同步失敗");
+                console.error("雲端讀取錯誤:", error);
+                setStatus("本地存檔模式");
             });
         };
 
         const syncData = async (isInit = false) => {
-            if (!currentUser || !dbRef) return;
+            await saveToLocal(state);
+
+            if (!currentUser || !dbRef) {
+                if (!isInit) {
+                    setStatus("已存檔 (本地)");
+                    setTimeout(() => setStatus("本地存檔模式"), 2000);
+                }
+                return;
+            }
+
             try {
-                isSyncing = true;
                 if(!isInit) setStatus("儲存中");
                 await setDoc(dbRef, state);
                 if(!isInit) {
-                    setStatus("已儲存");
+                    setStatus("已雲端備份");
                     setTimeout(() => setStatus("已同步"), 2000);
                 }
             } catch (e) {
                 console.error("儲存失敗:", e);
-                setStatus("儲存失敗");
-            } finally {
-                isSyncing = false;
+                setStatus("已存檔 (本地)");
             }
         };
 
         const setStatus = (msg) => {
             const el = document.getElementById('sync-status');
-            el.innerHTML = msg === '已同步' || msg === '已儲存' 
+            el.innerHTML = msg.includes('同步') || msg.includes('存檔') || msg.includes('備份')
                 ? `<i class="fa-solid fa-cloud-check mr-1"></i> ${msg}` 
                 : `<i class="fa-solid fa-cloud mr-1"></i> ${msg}`;
             
             if(msg === '讀取中' || msg === '儲存中') {
                 el.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> ${msg}`;
+            }
+            
+            if (msg.includes('本地')) {
+                el.className = "text-xs font-medium bg-warm-latte px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300";
+            } else if (msg.includes('同步') || msg.includes('備份')) {
+                el.className = "text-xs font-medium bg-white/30 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300";
+            } else {
+                el.className = "text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300";
             }
         };
 
@@ -413,29 +546,74 @@
             return '$' + Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
         };
 
+        // ----------------------------------------------------
+        // 4. 畫面渲染
+        // ----------------------------------------------------
         const renderAll = () => {
             renderAssets();
             renderIncomes();
         };
 
         const renderAssets = () => {
-            const { cash, stocks, others } = state.assets;
-            const total = cash + stocks + others;
+            const cash = state.assets.cash || 0;
+            const stocks = state.assets.stocks || 0;
+            // 計算其他投資總和
+            const othersTotal = state.otherAssets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            
+            const total = cash + stocks + othersTotal;
             
             document.getElementById('display-total-assets').innerText = formatMoney(total);
             document.getElementById('display-cash-amt').innerText = formatMoney(cash);
             document.getElementById('display-stocks-amt').innerText = formatMoney(stocks);
-            document.getElementById('display-others-amt').innerText = formatMoney(others);
+            
+            // 更新其他投資總結 (如果有資料的話顯示在標題旁)
+            const sumGroup = document.getElementById('others-summary-group');
+            if(othersTotal > 0) {
+                sumGroup.classList.remove('hidden');
+                document.getElementById('display-others-total').innerText = formatMoney(othersTotal);
+            } else {
+                sumGroup.classList.add('hidden');
+            }
 
             const safePct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
             
             document.getElementById('display-cash-pct').innerText = safePct(cash) + '%';
             document.getElementById('display-stocks-pct').innerText = safePct(stocks) + '%';
-            document.getElementById('display-others-pct').innerText = safePct(others) + '%';
+            if(othersTotal > 0) document.getElementById('display-others-pct').innerText = safePct(othersTotal) + '%';
 
             document.getElementById('bar-cash').style.width = safePct(cash) + '%';
             document.getElementById('bar-stocks').style.width = safePct(stocks) + '%';
-            document.getElementById('bar-others').style.width = safePct(others) + '%';
+            document.getElementById('bar-others').style.width = safePct(othersTotal) + '%';
+
+            // 渲染其他投資清單
+            const otherAssetsContainer = document.getElementById('list-other-assets');
+            otherAssetsContainer.innerHTML = '';
+            
+            if (state.otherAssets.length === 0) {
+                otherAssetsContainer.innerHTML = `<div class="text-center py-6 text-warm-textLight text-xs font-bold tracking-widest bg-white rounded-2xl border border-dashed border-warm-border">尚無其他投資紀錄</div>`;
+            } else {
+                state.otherAssets.forEach(item => {
+                    otherAssetsContainer.innerHTML += `
+                        <div class="list-card bg-white rounded-2xl p-4 border border-warm-border border-l-[4px] border-l-warm-latte flex items-center justify-between shadow-sm">
+                            <div>
+                                <h4 class="font-bold text-warm-textDark text-sm tracking-wide mb-1">${item.name}</h4>
+                                ${item.remark ? `<p class="text-[11px] text-warm-textLight font-medium">${item.remark}</p>` : ''}
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold text-warm-textDark mr-1 text-lg">${formatMoney(item.amount)}</span>
+                                <div class="flex items-center gap-1.5 border-l border-warm-border pl-3">
+                                    <button onclick="window.openOtherAssetModal('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-latte hover:bg-warm-latteLight/30 transition flex justify-center items-center" title="編輯">
+                                        <i class="fa-solid fa-pen text-xs"></i>
+                                    </button>
+                                    <button onclick="window.deleteOtherAsset('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center" title="刪除">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
         };
 
         const renderIncomes = () => {
@@ -446,7 +624,7 @@
                 const badgeColor = item.freq === '月' ? 'bg-warm-card text-warm-textLight' : 'bg-[#FDF0DE] border border-warm-latteLight text-warm-latte';
                 const borderColor = type === 'active' ? 'border-l-warm-peach' : 'border-l-warm-latte';
                 return `
-                    <div class="income-card bg-white rounded-2xl p-4 border border-warm-border border-l-[4px] ${borderColor} flex items-center justify-between shadow-sm">
+                    <div class="list-card bg-white rounded-2xl p-4 border border-warm-border border-l-[4px] ${borderColor} flex items-center justify-between shadow-sm">
                         <div>
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="font-bold text-warm-textDark text-sm tracking-wide">${item.name}</span>
@@ -503,6 +681,9 @@
             document.getElementById('display-monthly-passive').innerText = formatMoney(Math.round(passiveMonthly));
         };
 
+        // ----------------------------------------------------
+        // 5. UI 互動
+        // ----------------------------------------------------
         window.switchTab = (tab) => {
             document.getElementById('tab-assets').classList.add('hidden');
             document.getElementById('tab-income').classList.add('hidden');
@@ -537,31 +718,99 @@
             }, 300);
         };
 
-        window.openAssetModal = () => {
-            document.getElementById('input-cash').value = state.assets.cash || '';
-            document.getElementById('input-stocks').value = state.assets.stocks || '';
-            document.getElementById('input-others').value = state.assets.others || '';
+        const indicateError = (inputId) => {
+            const input = document.getElementById(inputId);
+            input.classList.add('border-red-400', 'bg-red-50');
+            input.placeholder = "請輸入正確數值";
+            setTimeout(() => {
+                input.classList.remove('border-red-400', 'bg-red-50');
+                input.placeholder = "0";
+            }, 2000);
+        }
+
+        // --- 基礎資產編輯 (現金/股票) ---
+        window.openAssetModal = (type) => {
+            document.getElementById('input-asset-type').value = type;
+            const titleLabel = type === 'cash' ? "現金儲蓄金額" : "股票現值金額";
+            document.getElementById('asset-modal-label').innerText = titleLabel;
+            document.getElementById('input-asset-amt').value = state.assets[type] || '';
             showModal('assets');
         };
 
-        window.saveAssets = async () => {
-            state.assets.cash = Number(document.getElementById('input-cash').value) || 0;
-            state.assets.stocks = Number(document.getElementById('input-stocks').value) || 0;
-            state.assets.others = Number(document.getElementById('input-others').value) || 0;
+        window.saveBaseAsset = async () => {
+            const type = document.getElementById('input-asset-type').value;
+            const amtInput = document.getElementById('input-asset-amt');
+            const amt = Number(amtInput.value);
             
+            if (amt < 0) { indicateError('input-asset-amt'); return; }
+            
+            state.assets[type] = amt || 0;
             renderAssets(); 
             window.closeModal('assets');
             await syncData(); 
         };
 
-        // 開啟收入 Modal (支援新增與編輯)
+        // --- 其他投資編輯 ---
+        window.openOtherAssetModal = (id = null) => {
+            document.getElementById('input-oa-id').value = id || '';
+            const titleEl = document.getElementById('other-asset-modal-title');
+            
+            if (id) {
+                titleEl.innerText = "編輯投資項目";
+                const item = state.otherAssets.find(i => i.id === id);
+                if(item) {
+                    document.getElementById('input-oa-name').value = item.name;
+                    document.getElementById('input-oa-amount').value = item.amount;
+                    document.getElementById('input-oa-remark').value = item.remark || '';
+                }
+            } else {
+                titleEl.innerText = "新增其他投資";
+                document.getElementById('input-oa-name').value = '';
+                document.getElementById('input-oa-amount').value = '';
+                document.getElementById('input-oa-remark').value = '';
+            }
+            showModal('other-asset');
+        };
+
+        window.saveOtherAsset = async () => {
+            const id = document.getElementById('input-oa-id').value;
+            const name = document.getElementById('input-oa-name').value.trim() || "未命名投資";
+            const amountInput = document.getElementById('input-oa-amount');
+            const amount = Number(amountInput.value) || 0;
+            const remark = document.getElementById('input-oa-remark').value.trim();
+
+            if (amount < 0) { indicateError('input-oa-amount'); return; }
+
+            if (id) {
+                const index = state.otherAssets.findIndex(i => i.id === id);
+                if (index !== -1) {
+                    state.otherAssets[index] = { ...state.otherAssets[index], name, amount, remark };
+                }
+            } else {
+                state.otherAssets.push({
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    name, amount, remark
+                });
+            }
+
+            renderAssets();
+            window.closeModal('other-asset');
+            await syncData();
+        };
+
+        window.deleteOtherAsset = async (id) => {
+            state.otherAssets = state.otherAssets.filter(i => i.id !== id);
+            renderAssets();
+            await syncData();
+        };
+
+        // --- 收入編輯 ---
         window.openIncomeModal = (category, id = null) => {
             document.getElementById('input-inc-cat').value = category;
             document.getElementById('input-inc-id').value = id || ''; 
 
             const isActive = category === 'active';
             
-            // 變更標題與按鈕顏色
             const titleEl = document.getElementById('income-modal-title');
             const saveBtn = document.getElementById('btn-save-income');
             
@@ -577,7 +826,6 @@
                 document.getElementById('group-inc-name').classList.remove('hidden');
             }
             
-            // 填入既有資料(編輯) 或是 清空資料(新增)
             if (id) {
                 const list = isActive ? state.activeIncomes : state.passiveIncomes;
                 const item = list.find(i => i.id === id);
@@ -603,13 +851,11 @@
             const cat = document.getElementById('input-inc-cat').value;
             const id = document.getElementById('input-inc-id').value; 
             const freq = document.getElementById('input-inc-freq').value;
-            const amount = Number(document.getElementById('input-inc-amount').value) || 0;
+            const amountInput = document.getElementById('input-inc-amount');
+            const amount = Number(amountInput.value) || 0;
             const remark = document.getElementById('input-inc-remark').value.trim();
             
-            if (amount <= 0) {
-                alert("金額需要大於 0 哦！");
-                return;
-            }
+            if (amount <= 0) { indicateError('input-inc-amount'); return; }
 
             let name = "";
             if (cat === 'active') {
