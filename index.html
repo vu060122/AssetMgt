@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>資產管家</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        warm: {
+                            bg: '#FFFDF9',       /* 奶白背景 */
+                            card: '#FFF8EE',     /* 淺奶油卡片 */
+                            border: '#F2E8D8',   /* 柔和的邊框 (無灰) */
+                            textDark: '#5E4B43', /* 深栗色文字 (取代深灰) */
+                            textLight: '#9E887D',/* 淺咖色文字 (取代淺灰) */
+                            
+                            /* 明亮莫蘭迪色系 (無灰底) */
+                            mint: '#88C0BB',     /* 莫蘭迪薄荷綠 (主色/資產) */
+                            mintLight: '#BCE3DF',
+                            peach: '#E3A39A',    /* 莫蘭迪蜜桃粉 (主動收入) */
+                            peachLight: '#FAD8D3',
+                            latte: '#D4B895',    /* 莫蘭迪奶茶色 (被動收入) */
+                            latteLight: '#F2DEC4',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 隱藏數字輸入框的上下箭頭 */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        /* 頂部頁籤樣式 */
+        .tab-active {
+            color: #88C0BB;
+            border-bottom: 3px solid #88C0BB;
+            background-color: #FFFDF9;
+        }
+        .tab-inactive {
+            color: #9E887D;
+            border-bottom: 3px solid transparent;
+            background-color: #FFF8EE;
+        }
+
+        /* 溫和的咖啡色系陰影 */
+        .shadow-warm {
+            box-shadow: 0 4px 15px -3px rgba(94, 75, 67, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-warm-bg text-warm-textDark font-sans antialiased selection:bg-warm-mintLight selection:text-warm-textDark">
+
+    <!-- 主容器 -->
+    <div class="max-w-md mx-auto min-h-screen bg-warm-bg relative shadow-xl overflow-hidden flex flex-col border-x border-warm-border">
+        
+        <!-- 頂部標題列 -->
+        <header class="bg-warm-mint text-white px-6 py-5 z-20 flex justify-between items-center relative shadow-sm">
+            <h1 class="text-xl font-bold tracking-wide">
+                <i class="fa-solid fa-leaf mr-2 text-white/80"></i>資產管家
+            </h1>
+            <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide">
+                <i class="fa-solid fa-spinner fa-spin mr-1"></i>讀取中
+            </div>
+        </header>
+
+        <!-- 頂部導航列 (頁籤) -->
+        <nav class="bg-warm-card flex text-sm font-bold z-10 relative shadow-sm border-b border-warm-border">
+            <button onclick="window.switchTab('assets')" id="nav-assets" class="flex-1 py-4 flex justify-center items-center gap-2 tab-active transition-colors duration-200">
+                <span>資產總覽</span>
+            </button>
+            <button onclick="window.switchTab('income')" id="nav-income" class="flex-1 py-4 flex justify-center items-center gap-2 tab-inactive transition-colors duration-200">
+                <span>收入追蹤</span>
+            </button>
+        </nav>
+
+        <!-- 內容區域 (可捲動) -->
+        <main class="flex-1 overflow-y-auto pb-8 relative p-5">
+            
+            <!-- 第一個頁籤：資產總覽 -->
+            <div id="tab-assets" class="space-y-6 animate-fade-in">
+                <!-- 總資產卡片 (薄荷綠漸層) -->
+                <div class="bg-gradient-to-br from-warm-mint to-[#68A39E] rounded-3xl shadow-warm p-7 text-white relative overflow-hidden">
+                    <div class="absolute -bottom-2 -right-2 opacity-20 text-8xl">
+                        <i class="fa-solid fa-piggy-bank"></i>
+                    </div>
+                    <p class="text-white/80 text-sm tracking-wide mb-1.5 font-medium relative z-10">目前的總資產 (TWD)</p>
+                    <h2 id="display-total-assets" class="text-4xl font-bold tracking-tight relative z-10">$0</h2>
+                    
+                    <!-- 比例長條圖 -->
+                    <div class="mt-8 flex h-2 rounded-full overflow-hidden bg-white/30 relative z-10">
+                        <div id="bar-cash" class="bg-warm-latteLight h-full transition-all duration-700" style="width: 0%;"></div>
+                        <div id="bar-stocks" class="bg-warm-peach h-full transition-all duration-700" style="width: 0%;"></div>
+                        <div id="bar-others" class="bg-warm-latte h-full transition-all duration-700" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- 資產明細列表 -->
+                <div class="bg-white rounded-3xl shadow-warm border border-warm-border p-2">
+                    <div class="flex items-center justify-between p-4 border-b border-warm-border/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-warm-latteLight shadow-sm"></div>
+                            <span class="text-sm font-bold text-warm-textDark">現金儲蓄</span>
+                        </div>
+                        <div class="text-right">
+                            <div id="display-cash-amt" class="font-bold text-warm-textDark">$0</div>
+                            <div id="display-cash-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4 border-b border-warm-border/60">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-warm-peach shadow-sm"></div>
+                            <span class="text-sm font-bold text-warm-textDark">股票現值</span>
+                        </div>
+                        <div class="text-right">
+                            <div id="display-stocks-amt" class="font-bold text-warm-textDark">$0</div>
+                            <div id="display-stocks-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-warm-latte shadow-sm"></div>
+                            <span class="text-sm font-bold text-warm-textDark">其他投資</span>
+                        </div>
+                        <div class="text-right">
+                            <div id="display-others-amt" class="font-bold text-warm-textDark">$0</div>
+                            <div id="display-others-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="window.openAssetModal()" class="w-full bg-warm-card text-warm-mint font-bold py-4 rounded-2xl border border-warm-border hover:bg-[#FDF0DE] transition shadow-sm tracking-wide">
+                    <i class="fa-solid fa-pen mr-2"></i>編輯資產紀錄
+                </button>
+            </div>
+
+            <!-- 第二個頁籤：收入追蹤 -->
+            <div id="tab-income" class="space-y-7 hidden animate-fade-in">
+                
+                <!-- 新版收入儀表板 -->
+                <div>
+                    <!-- 主要卡片 (蜜桃粉 -> 奶茶色 漸層) -->
+                    <div class="bg-gradient-to-br from-warm-peach to-warm-latte rounded-3xl p-7 shadow-warm text-white relative overflow-hidden">
+                        <i class="fa-solid fa-coins absolute -right-4 -bottom-4 text-7xl opacity-20"></i>
+                        <p class="text-white/90 text-sm tracking-wide mb-1.5 font-medium relative z-10">預估總年收</p>
+                        <h3 id="display-yearly-total" class="text-4xl sm:text-5xl font-bold tracking-tight mb-6 relative z-10">$0</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4 border-t border-white/20 pt-5 relative z-10">
+                            <div>
+                                <p class="text-white/80 text-xs tracking-wider mb-1">總平均月收</p>
+                                <p id="display-monthly-total" class="font-bold text-lg">$0</p>
+                            </div>
+                            <div>
+                                <p class="text-white/80 text-xs tracking-wider mb-1">被動年總計</p>
+                                <p id="display-yearly-passive" class="font-bold text-lg">$0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 月收細項輔助資訊 -->
+                    <div class="grid grid-cols-2 gap-3 mt-3">
+                        <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border flex flex-col justify-center items-center">
+                            <span class="text-warm-textLight text-[11px] font-bold tracking-widest mb-1">主動月收</span>
+                            <span id="display-monthly-active" class="font-bold text-warm-peach text-xl">$0</span>
+                        </div>
+                        <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border flex flex-col justify-center items-center">
+                            <span class="text-warm-textLight text-[11px] font-bold tracking-widest mb-1">被動月收</span>
+                            <span id="display-monthly-passive" class="font-bold text-warm-latte text-xl">$0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 收入列表區塊 共用樣式 -->
+                <style>
+                    .income-card { transition: all 0.2s ease; }
+                    .income-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(94, 75, 67, 0.05); }
+                </style>
+
+                <!-- 主動收入區塊 -->
+                <div>
+                    <div class="flex justify-between items-end mb-4 px-1">
+                        <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
+                            <span class="w-2 h-5 bg-warm-peach rounded-full mr-2"></span>主動收入
+                        </h3>
+                        <button onclick="window.openIncomeModal('active')" class="text-warm-peach bg-warm-peachLight/30 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-warm-peachLight/60 transition tracking-wider shadow-sm">
+                            <i class="fa-solid fa-plus mr-1"></i>紀錄
+                        </button>
+                    </div>
+                    <div id="list-active-income" class="space-y-3">
+                        <!-- 動態產生 -->
+                    </div>
+                </div>
+
+                <!-- 被動收入區塊 -->
+                <div>
+                    <div class="flex justify-between items-end mb-4 px-1 mt-8">
+                        <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
+                            <span class="w-2 h-5 bg-warm-latte rounded-full mr-2"></span>被動收入
+                        </h3>
+                        <button onclick="window.openIncomeModal('passive')" class="text-warm-latte bg-warm-latteLight/30 px-4 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm">
+                            <i class="fa-solid fa-plus mr-1"></i>紀錄
+                        </button>
+                    </div>
+                    <div id="list-passive-income" class="space-y-3">
+                        <!-- 動態產生 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 模態框：編輯資產 -->
+        <div id="modal-assets" class="fixed inset-0 bg-[#5E4B43]/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <h3 class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">編輯資產現值</h3>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">現金儲蓄</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3.5 text-warm-textLight text-sm font-bold">$</span>
+                            <input type="number" id="input-cash" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">股票現值</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3.5 text-warm-textLight text-sm font-bold">$</span>
+                            <input type="number" id="input-stocks" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">其他投資</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3.5 text-warm-textLight text-sm font-bold">$</span>
+                            <input type="number" id="input-others" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-8 pr-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight focus:border-transparent transition-all font-bold" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button onclick="window.closeModal('assets')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveAssets()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模態框：新增/編輯收入 -->
+        <div id="modal-income" class="fixed inset-0 bg-[#5E4B43]/30 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <h3 id="income-modal-title" class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">紀錄收入</h3>
+                
+                <input type="hidden" id="input-inc-cat">
+                <input type="hidden" id="input-inc-id"> 
+                
+                <div class="space-y-5">
+                    <!-- 項目名稱/類型 -->
+                    <div id="group-inc-type" class="hidden">
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">收入類型</label>
+                        <select id="input-inc-type" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-peachLight transition-all font-medium">
+                            <option value="固定薪資">固定薪資</option>
+                            <option value="年終獎金">年終獎金</option>
+                            <option value="其他加給">其他加給</option>
+                        </select>
+                    </div>
+                    <div id="group-inc-name">
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">項目名稱</label>
+                        <input type="text" id="input-inc-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="如：股息、收租">
+                    </div>
+                    
+                    <!-- 週期與金額 -->
+                    <div class="flex gap-3">
+                        <div class="w-1/3">
+                            <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">頻率</label>
+                            <select id="input-inc-freq" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-3 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-medium text-center">
+                                <option value="月">月收</option>
+                                <option value="年">年收</option>
+                            </select>
+                        </div>
+                        <div class="w-2/3">
+                            <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">金額</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-3.5 text-warm-textLight text-sm font-bold">$</span>
+                                <input type="number" id="input-inc-amount" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-7 pr-3 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 備註 -->
+                    <div>
+                        <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">備註 (選填)</label>
+                        <textarea id="input-inc-remark" rows="2" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all text-sm placeholder:text-warm-textLight/50" placeholder="寫點筆記..."></textarea>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button onclick="window.closeModal('income')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveIncome()" id="btn-save-income" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white transition shadow-md">完成</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase 與 應用程式邏輯 -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let state = {
+            assets: { cash: 0, stocks: 0, others: 0 },
+            activeIncomes: [],  
+            passiveIncomes: []  
+        };
+
+        let auth, db, dbRef, currentUser = null;
+        let isSyncing = false;
+
+        const initApp = async () => {
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'finance-app-id';
+            const configString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
+
+            if (configString) {
+                try {
+                    const firebaseConfig = JSON.parse(configString);
+                    const app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUser = user;
+                            dbRef = doc(db, 'artifacts', appId, 'users', user.uid, 'finance_data', 'mainDoc');
+                            listenToData();
+                        }
+                    });
+                } catch (e) {
+                    console.error("Firebase 初始化失敗:", e);
+                    setStatus("本地存檔");
+                    renderAll();
+                }
+            } else {
+                setStatus("離線模式");
+                renderAll(); 
+            }
+        };
+
+        const listenToData = () => {
+            if (!currentUser) return;
+            setStatus("讀取中");
+            
+            onSnapshot(dbRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    state.assets = data.assets || { cash: 0, stocks: 0, others: 0 };
+                    state.activeIncomes = data.activeIncomes || [];
+                    state.passiveIncomes = data.passiveIncomes || [];
+                    setStatus("已同步");
+                } else {
+                    syncData(true);
+                }
+                renderAll();
+            }, (error) => {
+                console.error("Firestore 讀取錯誤:", error);
+                setStatus("同步失敗");
+            });
+        };
+
+        const syncData = async (isInit = false) => {
+            if (!currentUser || !dbRef) return;
+            try {
+                isSyncing = true;
+                if(!isInit) setStatus("儲存中");
+                await setDoc(dbRef, state);
+                if(!isInit) {
+                    setStatus("已儲存");
+                    setTimeout(() => setStatus("已同步"), 2000);
+                }
+            } catch (e) {
+                console.error("儲存失敗:", e);
+                setStatus("儲存失敗");
+            } finally {
+                isSyncing = false;
+            }
+        };
+
+        const setStatus = (msg) => {
+            const el = document.getElementById('sync-status');
+            el.innerHTML = msg === '已同步' || msg === '已儲存' 
+                ? `<i class="fa-solid fa-cloud-check mr-1"></i> ${msg}` 
+                : `<i class="fa-solid fa-cloud mr-1"></i> ${msg}`;
+            
+            if(msg === '讀取中' || msg === '儲存中') {
+                el.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> ${msg}`;
+            }
+        };
+
+        const formatMoney = (amount) => {
+            return '$' + Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        };
+
+        const renderAll = () => {
+            renderAssets();
+            renderIncomes();
+        };
+
+        const renderAssets = () => {
+            const { cash, stocks, others } = state.assets;
+            const total = cash + stocks + others;
+            
+            document.getElementById('display-total-assets').innerText = formatMoney(total);
+            document.getElementById('display-cash-amt').innerText = formatMoney(cash);
+            document.getElementById('display-stocks-amt').innerText = formatMoney(stocks);
+            document.getElementById('display-others-amt').innerText = formatMoney(others);
+
+            const safePct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+            
+            document.getElementById('display-cash-pct').innerText = safePct(cash) + '%';
+            document.getElementById('display-stocks-pct').innerText = safePct(stocks) + '%';
+            document.getElementById('display-others-pct').innerText = safePct(others) + '%';
+
+            document.getElementById('bar-cash').style.width = safePct(cash) + '%';
+            document.getElementById('bar-stocks').style.width = safePct(stocks) + '%';
+            document.getElementById('bar-others').style.width = safePct(others) + '%';
+        };
+
+        const renderIncomes = () => {
+            let activeMonthly = 0, activeYearly = 0;
+            let passiveMonthly = 0, passiveYearly = 0;
+
+            const createItemHtml = (item, type) => {
+                const badgeColor = item.freq === '月' ? 'bg-warm-card text-warm-textLight' : 'bg-[#FDF0DE] border border-warm-latteLight text-warm-latte';
+                const borderColor = type === 'active' ? 'border-l-warm-peach' : 'border-l-warm-latte';
+                return `
+                    <div class="income-card bg-white rounded-2xl p-4 border border-warm-border border-l-[4px] ${borderColor} flex items-center justify-between shadow-sm">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-bold text-warm-textDark text-sm tracking-wide">${item.name}</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold tracking-widest ${badgeColor}">${item.freq}收</span>
+                            </div>
+                            ${item.remark ? `<p class="text-[11px] text-warm-textLight font-medium">${item.remark}</p>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-bold text-warm-textDark mr-1 text-lg">${formatMoney(item.amount)}</span>
+                            <div class="flex items-center gap-1.5 border-l border-warm-border pl-3">
+                                <button onclick="window.openIncomeModal('${type}', '${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-mint hover:bg-warm-mintLight/30 transition flex justify-center items-center" title="編輯">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="window.deleteIncome('${item.id}', '${type}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center" title="刪除">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const activeContainer = document.getElementById('list-active-income');
+            activeContainer.innerHTML = '';
+            if (state.activeIncomes.length === 0) {
+                activeContainer.innerHTML = `<div class="text-center py-6 text-warm-textLight text-xs font-bold tracking-widest bg-warm-card rounded-2xl border border-dashed border-warm-border">尚無主動收入紀錄</div>`;
+            } else {
+                state.activeIncomes.forEach(item => {
+                    if (item.freq === '月') { activeMonthly += item.amount; activeYearly += item.amount * 12; }
+                    else { activeYearly += item.amount; activeMonthly += item.amount / 12; }
+                    activeContainer.innerHTML += createItemHtml(item, 'active');
+                });
+            }
+
+            const passiveContainer = document.getElementById('list-passive-income');
+            passiveContainer.innerHTML = '';
+            if (state.passiveIncomes.length === 0) {
+                passiveContainer.innerHTML = `<div class="text-center py-6 text-warm-textLight text-xs font-bold tracking-widest bg-warm-card rounded-2xl border border-dashed border-warm-border">尚無被動收入紀錄</div>`;
+            } else {
+                state.passiveIncomes.forEach(item => {
+                    if (item.freq === '月') { passiveMonthly += item.amount; passiveYearly += item.amount * 12; }
+                    else { passiveYearly += item.amount; passiveMonthly += item.amount / 12; }
+                    passiveContainer.innerHTML += createItemHtml(item, 'passive');
+                });
+            }
+
+            const totalMonthly = activeMonthly + passiveMonthly;
+            const totalYearly = activeYearly + passiveYearly;
+
+            document.getElementById('display-yearly-total').innerText = formatMoney(Math.round(totalYearly));
+            document.getElementById('display-monthly-total').innerText = formatMoney(Math.round(totalMonthly));
+            document.getElementById('display-yearly-passive').innerText = formatMoney(Math.round(passiveYearly));
+            document.getElementById('display-monthly-active').innerText = formatMoney(Math.round(activeMonthly));
+            document.getElementById('display-monthly-passive').innerText = formatMoney(Math.round(passiveMonthly));
+        };
+
+        window.switchTab = (tab) => {
+            document.getElementById('tab-assets').classList.add('hidden');
+            document.getElementById('tab-income').classList.add('hidden');
+            
+            const inactiveClasses = "flex-1 py-4 flex justify-center items-center gap-2 tab-inactive transition-colors duration-200";
+            const activeClasses = "flex-1 py-4 flex justify-center items-center gap-2 tab-active transition-colors duration-200";
+            
+            document.getElementById('nav-assets').className = inactiveClasses;
+            document.getElementById('nav-income').className = inactiveClasses;
+
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`nav-${tab}`).className = activeClasses;
+        };
+
+        const showModal = (modalId) => {
+            const modal = document.getElementById(`modal-${modalId}`);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.firstElementChild.classList.remove('scale-95');
+                modal.firstElementChild.classList.add('scale-100');
+            }, 10);
+        };
+
+        window.closeModal = (modalId) => {
+            const modal = document.getElementById(`modal-${modalId}`);
+            modal.classList.add('opacity-0');
+            modal.firstElementChild.classList.remove('scale-100');
+            modal.firstElementChild.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        };
+
+        window.openAssetModal = () => {
+            document.getElementById('input-cash').value = state.assets.cash || '';
+            document.getElementById('input-stocks').value = state.assets.stocks || '';
+            document.getElementById('input-others').value = state.assets.others || '';
+            showModal('assets');
+        };
+
+        window.saveAssets = async () => {
+            state.assets.cash = Number(document.getElementById('input-cash').value) || 0;
+            state.assets.stocks = Number(document.getElementById('input-stocks').value) || 0;
+            state.assets.others = Number(document.getElementById('input-others').value) || 0;
+            
+            renderAssets(); 
+            window.closeModal('assets');
+            await syncData(); 
+        };
+
+        // 開啟收入 Modal (支援新增與編輯)
+        window.openIncomeModal = (category, id = null) => {
+            document.getElementById('input-inc-cat').value = category;
+            document.getElementById('input-inc-id').value = id || ''; 
+
+            const isActive = category === 'active';
+            
+            // 變更標題與按鈕顏色
+            const titleEl = document.getElementById('income-modal-title');
+            const saveBtn = document.getElementById('btn-save-income');
+            
+            titleEl.innerText = id ? "編輯紀錄" : (isActive ? "紀錄主動收入" : "紀錄被動收入");
+            
+            if (isActive) {
+                saveBtn.className = "flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-peach hover:bg-[#D68F85] transition shadow-md shadow-warm-peach/30";
+                document.getElementById('group-inc-type').classList.remove('hidden');
+                document.getElementById('group-inc-name').classList.add('hidden');
+            } else {
+                saveBtn.className = "flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-latte hover:bg-[#C2A37D] transition shadow-md shadow-warm-latte/30";
+                document.getElementById('group-inc-type').classList.add('hidden');
+                document.getElementById('group-inc-name').classList.remove('hidden');
+            }
+            
+            // 填入既有資料(編輯) 或是 清空資料(新增)
+            if (id) {
+                const list = isActive ? state.activeIncomes : state.passiveIncomes;
+                const item = list.find(i => i.id === id);
+                if (item) {
+                    if (isActive) document.getElementById('input-inc-type').value = item.name;
+                    else document.getElementById('input-inc-name').value = item.name;
+                    document.getElementById('input-inc-freq').value = item.freq;
+                    document.getElementById('input-inc-amount').value = item.amount;
+                    document.getElementById('input-inc-remark').value = item.remark || '';
+                }
+            } else {
+                if (isActive) document.getElementById('input-inc-type').value = '固定薪資';
+                else document.getElementById('input-inc-name').value = '';
+                document.getElementById('input-inc-freq').value = '月';
+                document.getElementById('input-inc-amount').value = '';
+                document.getElementById('input-inc-remark').value = '';
+            }
+            
+            showModal('income');
+        };
+
+        window.saveIncome = async () => {
+            const cat = document.getElementById('input-inc-cat').value;
+            const id = document.getElementById('input-inc-id').value; 
+            const freq = document.getElementById('input-inc-freq').value;
+            const amount = Number(document.getElementById('input-inc-amount').value) || 0;
+            const remark = document.getElementById('input-inc-remark').value.trim();
+            
+            if (amount <= 0) {
+                alert("金額需要大於 0 哦！");
+                return;
+            }
+
+            let name = "";
+            if (cat === 'active') {
+                name = document.getElementById('input-inc-type').value;
+            } else {
+                name = document.getElementById('input-inc-name').value.trim() || "未命名投資";
+            }
+
+            const targetList = cat === 'active' ? state.activeIncomes : state.passiveIncomes;
+
+            if (id) {
+                const index = targetList.findIndex(i => i.id === id);
+                if (index !== -1) {
+                    targetList[index] = { ...targetList[index], name, freq, amount, remark };
+                }
+            } else {
+                const newItem = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                    name, freq, amount, remark
+                };
+                targetList.push(newItem);
+            }
+
+            renderIncomes(); 
+            window.closeModal('income');
+            await syncData(); 
+        };
+
+        window.deleteIncome = async (id, cat) => {
+            if (cat === 'active') {
+                state.activeIncomes = state.activeIncomes.filter(i => i.id !== id);
+            } else {
+                state.passiveIncomes = state.passiveIncomes.filter(i => i.id !== id);
+            }
+            renderIncomes();
+            await syncData();
+        };
+
+        window.onload = initApp;
+
+    </script>
+</body>
+</html>
