@@ -6,8 +6,12 @@
     <title>財Asset Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- 引入 Chart.js 用於繪製圖表 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 SheetJS 用於讀取 Excel/CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -27,6 +31,10 @@
                             peachLight: '#FAD8D3',
                             latte: '#D4B895',    /* 莫蘭迪奶茶色 */
                             latteLight: '#F2DEC4',
+
+                            /* 股市專用：紅漲綠跌 */
+                            stockGain: '#D66D60', /* 獲利紅 */
+                            stockLoss: '#5B9E97', /* 虧損綠 */
                         }
                     }
                 }
@@ -69,6 +77,27 @@
         .shadow-warm {
             box-shadow: 0 4px 15px -3px rgba(94, 75, 67, 0.06);
         }
+        
+        /* 隱藏捲動軸但保留功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 美化上傳檔案的 input */
+        input[type="file"]::file-selector-button {
+            margin-right: 10px;
+            border: none;
+            background: #D4B895;
+            padding: 8px 16px;
+            border-radius: 12px;
+            color: #fff;
+            cursor: pointer;
+            transition: background .2s ease-in-out;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: #C2A37D;
+        }
     </style>
 </head>
 <body class="bg-warm-bg text-warm-textDark font-sans antialiased selection:bg-warm-mintLight selection:text-warm-textDark">
@@ -77,7 +106,7 @@
     <div class="max-w-md mx-auto min-h-screen bg-warm-bg relative shadow-xl overflow-hidden flex flex-col border-x border-warm-border">
         
         <!-- 頂部標題列 -->
-        <header class="bg-warm-mint text-white px-6 py-5 z-20 flex justify-between items-center relative shadow-sm">
+        <header class="bg-warm-mint text-white px-6 py-4 z-20 flex justify-between items-center relative shadow-sm">
             <h1 class="text-xl font-bold tracking-wide flex items-center">
                 <i class="fa-solid fa-wallet mr-2.5 text-white/90 text-2xl"></i>
                 Asset Management
@@ -87,37 +116,36 @@
             </div>
         </header>
 
-        <!-- 頂部導航列 (頁籤) -->
-        <nav class="bg-warm-card flex text-sm font-bold z-10 relative shadow-sm border-b border-warm-border">
-            <button onclick="window.switchTab('assets')" id="nav-assets" class="flex-1 py-3.5 flex justify-center items-center gap-2 tab-active transition-colors duration-200">
-                <i class="fa-solid fa-chart-pie text-lg mb-0.5"></i>
-                <span>資產總覽</span>
+        <!-- 頂部導航列 -->
+        <nav class="bg-warm-card flex text-[11px] sm:text-xs font-bold z-10 relative shadow-sm border-b border-warm-border overflow-x-auto no-scrollbar">
+            <button onclick="window.switchTab('assets')" id="nav-assets" class="flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-active transition-colors duration-200">
+                <i class="fa-solid fa-chart-pie text-sm sm:text-lg mb-0.5"></i><span>資產總覽</span>
             </button>
-            <button onclick="window.switchTab('income')" id="nav-income" class="flex-1 py-3.5 flex justify-center items-center gap-2 tab-inactive transition-colors duration-200">
-                <i class="fa-solid fa-money-bill-wave text-lg mb-0.5"></i>
-                <span>收入追蹤</span>
+            <button onclick="window.switchTab('income')" id="nav-income" class="flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-inactive transition-colors duration-200">
+                <i class="fa-solid fa-money-bill-wave text-sm sm:text-lg mb-0.5"></i><span>收入追蹤</span>
             </button>
-            <button onclick="window.switchTab('growth')" id="nav-growth" class="flex-1 py-3.5 flex justify-center items-center gap-2 tab-inactive transition-colors duration-200">
-                <i class="fa-solid fa-arrow-trend-up text-lg mb-0.5"></i>
-                <span>資產成長</span>
+            <button onclick="window.switchTab('stocks')" id="nav-stocks" class="flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-inactive transition-colors duration-200">
+                <i class="fa-solid fa-chart-line text-sm sm:text-lg mb-0.5"></i><span>股票損益</span>
+            </button>
+            <button onclick="window.switchTab('growth')" id="nav-growth" class="flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-inactive transition-colors duration-200">
+                <i class="fa-solid fa-arrow-trend-up text-sm sm:text-lg mb-0.5"></i><span>資產成長</span>
             </button>
         </nav>
 
-        <!-- 內容區域 (可捲動) -->
-        <main class="flex-1 overflow-y-auto relative p-5 flex flex-col">
-            
+        <!-- 內容區域 -->
+        <main class="flex-1 overflow-y-auto relative p-4 sm:p-5 flex flex-col">
             <div class="flex-1">
+                
                 <!-- 第一個頁籤：資產總覽 -->
                 <div id="tab-assets" class="space-y-6 animate-fade-in">
                     <!-- 總資產卡片 -->
-                    <div class="bg-gradient-to-br from-warm-mint to-[#68A39E] rounded-3xl shadow-warm p-7 text-white relative overflow-hidden">
+                    <div class="bg-gradient-to-br from-warm-mint to-[#68A39E] rounded-3xl shadow-warm p-6 sm:p-7 text-white relative overflow-hidden">
                         <div class="absolute -bottom-2 -right-2 opacity-20 text-8xl">
                             <i class="fa-solid fa-sack-dollar"></i>
                         </div>
-                        <p class="text-white/80 text-sm tracking-wide mb-1.5 font-medium relative z-10">目前的總資產 (TWD)</p>
-                        <h2 id="display-total-assets" class="text-4xl font-bold tracking-tight relative z-10">$0</h2>
+                        <p class="text-white/80 text-xs sm:text-sm tracking-wide mb-1.5 font-medium relative z-10">目前的總資產 (TWD)</p>
+                        <h2 id="display-total-assets" class="text-3xl sm:text-4xl font-bold tracking-tight relative z-10">$0</h2>
                         
-                        <!-- 比例長條圖 -->
                         <div class="mt-8 flex h-2 rounded-full overflow-hidden bg-white/30 relative z-10">
                             <div id="bar-cash" class="bg-warm-latteLight h-full transition-all duration-700" style="width: 0%;"></div>
                             <div id="bar-stocks" class="bg-warm-peach h-full transition-all duration-700" style="width: 0%;"></div>
@@ -127,14 +155,14 @@
 
                     <!-- 資產明細列表 (現金與股票) -->
                     <div class="bg-white rounded-3xl shadow-warm border border-warm-border p-2">
-                        <div class="flex items-center justify-between p-4 border-b border-warm-border/60">
+                        <div class="flex items-center justify-between p-3 sm:p-4 border-b border-warm-border/60">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full bg-warm-latteLight/30 flex items-center justify-center text-warm-latte">
                                     <i class="fa-solid fa-money-bill"></i>
                                 </div>
                                 <span class="text-sm font-bold text-warm-textDark">現金儲蓄</span>
                             </div>
-                            <div class="text-right flex items-center gap-3">
+                            <div class="text-right flex items-center gap-2 sm:gap-3">
                                 <div class="text-right">
                                     <div id="display-cash-amt" class="font-bold text-warm-textDark">$0</div>
                                     <div id="display-cash-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
@@ -144,14 +172,14 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="flex items-center justify-between p-4">
+                        <div class="flex items-center justify-between p-3 sm:p-4">
                             <div class="flex items-center gap-3">
                                 <div class="w-8 h-8 rounded-full bg-warm-peach/20 flex items-center justify-center text-warm-peach">
                                     <i class="fa-solid fa-chart-simple"></i>
                                 </div>
-                                <span class="text-sm font-bold text-warm-textDark">股票現值</span>
+                                <span class="text-sm font-bold text-warm-textDark">現有股票</span>
                             </div>
-                            <div class="text-right flex items-center gap-3">
+                            <div class="text-right flex items-center gap-2 sm:gap-3">
                                 <div class="text-right">
                                     <div id="display-stocks-amt" class="font-bold text-warm-textDark">$0</div>
                                     <div id="display-stocks-pct" class="text-[11px] text-warm-textLight font-medium">0%</div>
@@ -165,61 +193,59 @@
 
                     <!-- 其他投資列表區塊 -->
                     <div>
-                        <div class="flex justify-between items-end mb-4 px-1 mt-8">
-                            <div class="flex items-center gap-3">
-                                <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
-                                    <i class="fa-solid fa-gem text-warm-latte mr-2"></i>其他投資
+                        <div class="flex justify-between items-end mb-3 sm:mb-4 px-1 mt-6 sm:mt-8">
+                            <div class="flex items-center gap-2 sm:gap-3">
+                                <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide">
+                                    <i class="fa-solid fa-gem text-warm-latte mr-1.5 sm:mr-2"></i>其他投資
                                 </h3>
                                 <div class="text-right hidden bg-warm-card px-2 py-1 rounded-lg border border-warm-border" id="others-summary-group">
                                     <div id="display-others-total" class="font-bold text-warm-textDark text-xs">$0</div>
                                 </div>
                             </div>
-                            <button onclick="window.openOtherAssetModal()" class="text-warm-latte bg-warm-latteLight/30 px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm flex items-center">
+                            <button onclick="window.openOtherAssetModal()" class="text-warm-latte bg-warm-latteLight/30 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm flex items-center">
                                 <i class="fa-solid fa-plus mr-1 text-[10px]"></i>新增
                             </button>
                         </div>
                         
-                        <!-- 沒有投資時的空狀態 -->
-                        <div id="empty-other-assets" class="hidden text-center py-8 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
-                            <i class="fa-solid fa-box-open text-3xl text-warm-textLight/30 mb-2"></i>
+                        <div id="empty-other-assets" class="hidden text-center py-6 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
+                            <i class="fa-solid fa-box-open text-2xl text-warm-textLight/30 mb-2"></i>
                             <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無其他投資紀錄</p>
                         </div>
                         
-                        <div id="list-other-assets" class="space-y-3">
+                        <div id="list-other-assets" class="space-y-2 sm:space-y-3">
                             <!-- 動態產生 -->
                         </div>
                     </div>
                 </div>
 
                 <!-- 第二個頁籤：收入追蹤 -->
-                <div id="tab-income" class="space-y-7 hidden animate-fade-in">
-                    <!-- 儀表板 -->
+                <div id="tab-income" class="space-y-6 sm:space-y-7 hidden animate-fade-in">
                     <div>
-                        <div class="bg-gradient-to-br from-warm-peach to-warm-latte rounded-3xl p-7 shadow-warm text-white relative overflow-hidden">
+                        <div class="bg-gradient-to-br from-warm-peach to-warm-latte rounded-3xl p-6 sm:p-7 shadow-warm text-white relative overflow-hidden">
                             <i class="fa-solid fa-coins absolute -right-4 -bottom-4 text-7xl opacity-20"></i>
-                            <p class="text-white/90 text-sm tracking-wide mb-1.5 font-medium relative z-10">預估總年收</p>
-                            <h3 id="display-yearly-total" class="text-4xl sm:text-5xl font-bold tracking-tight mb-6 relative z-10">$0</h3>
+                            <p class="text-white/90 text-xs sm:text-sm tracking-wide mb-1.5 font-medium relative z-10">預估總年收</p>
+                            <h3 id="display-yearly-total" class="text-3xl sm:text-4xl font-bold tracking-tight mb-6 relative z-10">$0</h3>
                             
-                            <div class="grid grid-cols-2 gap-4 border-t border-white/20 pt-5 relative z-10">
+                            <div class="grid grid-cols-2 gap-4 border-t border-white/20 pt-4 sm:pt-5 relative z-10">
                                 <div>
-                                    <p class="text-white/80 text-xs tracking-wider mb-1">總平均月收</p>
-                                    <p id="display-monthly-total" class="font-bold text-lg">$0</p>
+                                    <p class="text-white/80 text-[10px] sm:text-xs tracking-wider mb-1">總平均月收</p>
+                                    <p id="display-monthly-total" class="font-bold text-base sm:text-lg">$0</p>
                                 </div>
                                 <div>
-                                    <p class="text-white/80 text-xs tracking-wider mb-1">被動年總計</p>
-                                    <p id="display-yearly-passive" class="font-bold text-lg">$0</p>
+                                    <p class="text-white/80 text-[10px] sm:text-xs tracking-wider mb-1">被動年總計</p>
+                                    <p id="display-yearly-passive" class="font-bold text-base sm:text-lg">$0</p>
                                 </div>
                             </div>
                         </div>
                         
                         <div class="grid grid-cols-2 gap-3 mt-3">
-                            <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border flex flex-col justify-center items-center">
-                                <span class="text-warm-textLight text-[11px] font-bold tracking-widest mb-1"><i class="fa-solid fa-briefcase mr-1 text-warm-peach"></i>主動月收</span>
-                                <span id="display-monthly-active" class="font-bold text-warm-peach text-xl">$0</span>
+                            <div class="bg-white rounded-2xl p-3 sm:p-4 shadow-warm border border-warm-border flex flex-col justify-center items-center">
+                                <span class="text-warm-textLight text-[10px] sm:text-[11px] font-bold tracking-widest mb-1"><i class="fa-solid fa-briefcase mr-1 text-warm-peach"></i>主動月收</span>
+                                <span id="display-monthly-active" class="font-bold text-warm-peach text-lg sm:text-xl">$0</span>
                             </div>
-                            <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border flex flex-col justify-center items-center">
-                                <span class="text-warm-textLight text-[11px] font-bold tracking-widest mb-1"><i class="fa-solid fa-mug-hot mr-1 text-warm-latte"></i>被動月收</span>
-                                <span id="display-monthly-passive" class="font-bold text-warm-latte text-xl">$0</span>
+                            <div class="bg-white rounded-2xl p-3 sm:p-4 shadow-warm border border-warm-border flex flex-col justify-center items-center">
+                                <span class="text-warm-textLight text-[10px] sm:text-[11px] font-bold tracking-widest mb-1"><i class="fa-solid fa-mug-hot mr-1 text-warm-latte"></i>被動月收</span>
+                                <span id="display-monthly-passive" class="font-bold text-warm-latte text-lg sm:text-xl">$0</span>
                             </div>
                         </div>
                     </div>
@@ -229,92 +255,151 @@
                         .list-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(94, 75, 67, 0.05); }
                     </style>
 
-                    <!-- 主動收入區塊 -->
+                    <!-- 主動收入 -->
                     <div>
-                        <div class="flex justify-between items-end mb-4 px-1">
-                            <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
-                                <i class="fa-solid fa-briefcase text-warm-peach mr-2"></i>主動收入
+                        <div class="flex justify-between items-end mb-3 sm:mb-4 px-1">
+                            <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide">
+                                <i class="fa-solid fa-briefcase text-warm-peach mr-1.5 sm:mr-2"></i>主動收入
                             </h3>
-                            <button onclick="window.openIncomeModal('active')" class="text-warm-peach bg-warm-peachLight/30 px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-warm-peachLight/60 transition tracking-wider shadow-sm flex items-center">
-                                <i class="fa-solid fa-plus mr-1 text-[10px]"></i>新增
+                            <button onclick="window.openIncomeModal('active')" class="text-warm-peach bg-warm-peachLight/30 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-warm-peachLight/60 transition tracking-wider shadow-sm flex items-center">
+                                <i class="fa-solid fa-plus mr-1 text-[10px]"></i>紀錄
                             </button>
                         </div>
-                        <div id="empty-active-income" class="hidden text-center py-8 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
-                            <i class="fa-solid fa-folder-open text-3xl text-warm-textLight/30 mb-2"></i>
-                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無主動收入紀錄</p>
+                        <div id="empty-active-income" class="hidden text-center py-6 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
+                            <i class="fa-solid fa-folder-open text-2xl text-warm-textLight/30 mb-2"></i>
+                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無主動收入</p>
                         </div>
-                        <div id="list-active-income" class="space-y-3">
-                            <!-- 動態產生 -->
-                        </div>
+                        <div id="list-active-income" class="space-y-2.5 sm:space-y-3"></div>
                     </div>
 
-                    <!-- 被動收入區塊 -->
+                    <!-- 被動收入 -->
                     <div>
-                        <div class="flex justify-between items-end mb-4 px-1 mt-8">
-                            <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
-                                <i class="fa-solid fa-seedling text-warm-latte mr-2"></i>被動收入
+                        <div class="flex justify-between items-end mb-3 sm:mb-4 px-1 mt-6 sm:mt-8">
+                            <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide">
+                                <i class="fa-solid fa-seedling text-warm-latte mr-1.5 sm:mr-2"></i>被動收入
                             </h3>
-                            <button onclick="window.openIncomeModal('passive')" class="text-warm-latte bg-warm-latteLight/30 px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm flex items-center">
-                                <i class="fa-solid fa-plus mr-1 text-[10px]"></i>新增
+                            <button onclick="window.openIncomeModal('passive')" class="text-warm-latte bg-warm-latteLight/30 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm flex items-center">
+                                <i class="fa-solid fa-plus mr-1 text-[10px]"></i>紀錄
                             </button>
                         </div>
-                        <div id="empty-passive-income" class="hidden text-center py-8 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
-                            <i class="fa-solid fa-seedling text-3xl text-warm-textLight/30 mb-2"></i>
-                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無被動收入紀錄</p>
+                        <div id="empty-passive-income" class="hidden text-center py-6 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
+                            <i class="fa-solid fa-seedling text-2xl text-warm-textLight/30 mb-2"></i>
+                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無被動收入</p>
                         </div>
-                        <div id="list-passive-income" class="space-y-3">
-                            <!-- 動態產生 -->
-                        </div>
+                        <div id="list-passive-income" class="space-y-2.5 sm:space-y-3"></div>
                     </div>
                 </div>
 
-                <!-- 第三個頁籤：資產成長 -->
+                <!-- 第三個頁籤：股票損益 -->
+                <div id="tab-stocks" class="space-y-6 hidden animate-fade-in">
+                    
+                    <!-- 統計儀表板 -->
+                    <div class="bg-gradient-to-br from-warm-latte to-[#B89B77] rounded-3xl p-6 shadow-warm text-white relative overflow-hidden">
+                        <i class="fa-solid fa-arrow-trend-up absolute -right-2 -bottom-2 text-7xl opacity-20"></i>
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <p class="text-white/90 text-xs tracking-widest font-medium">篩選總損益 (TWD)</p>
+                            <div class="flex gap-2">
+                                <button onclick="window.openStockImportModal()" class="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center backdrop-blur-sm border border-white/30 shadow-sm" title="支援 Excel/CSV">
+                                    <i class="fa-solid fa-file-import mr-1.5"></i>匯入 Excel
+                                </button>
+                                <button onclick="window.openStockModal()" class="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold transition flex items-center backdrop-blur-sm border border-white/30 shadow-sm">
+                                    <i class="fa-solid fa-plus mr-1.5"></i>新增交易
+                                </button>
+                            </div>
+                        </div>
+                        <h3 id="display-stock-filter-total" class="text-4xl font-bold tracking-tight mb-5 relative z-10">$0</h3>
+                        
+                        <div class="grid grid-cols-2 gap-4 border-t border-white/20 pt-4 relative z-10">
+                            <div>
+                                <p class="text-white/80 text-[10px] tracking-wider mb-1">當月已實現損益</p>
+                                <p id="display-stock-month-total" class="font-bold text-sm sm:text-base">$0</p>
+                            </div>
+                            <div>
+                                <p class="text-white/80 text-[10px] tracking-wider mb-1">當年已實現損益</p>
+                                <p id="display-stock-year-total" class="font-bold text-sm sm:text-base">$0</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 篩選區塊 -->
+                    <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border">
+                        <div class="flex items-center gap-2 mb-3">
+                            <i class="fa-solid fa-filter text-warm-textLight text-xs"></i>
+                            <span class="text-xs font-bold text-warm-textDark tracking-widest">進階篩選</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <select id="filter-stock-year" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint">
+                                    <option value="all">所有年份</option>
+                                    <!-- JS動態生成年份 -->
+                                </select>
+                            </div>
+                            <div>
+                                <select id="filter-stock-type" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint">
+                                    <option value="all">所有交易</option>
+                                    <option value="現賣">現賣</option>
+                                    <option value="當沖">當沖</option>
+                                </select>
+                            </div>
+                            <div>
+                                <input type="text" id="filter-stock-name" oninput="window.renderStocksTab()" placeholder="輸入股名" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint placeholder:font-normal placeholder:text-warm-textLight/60">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 股票清單區塊 -->
+                    <div id="list-stocks" class="space-y-3">
+                        <!-- 動態產生 -->
+                    </div>
+                    <div id="empty-stocks" class="hidden text-center py-10 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
+                        <i class="fa-solid fa-file-invoice-dollar text-3xl text-warm-textLight/30 mb-3"></i>
+                        <p class="text-warm-textLight text-xs font-bold tracking-widest">無符合的股票損益紀錄</p>
+                    </div>
+                </div>
+
+                <!-- 第四個頁籤：資產成長 -->
                 <div id="tab-growth" class="space-y-6 hidden animate-fade-in">
-                    <div class="bg-white rounded-3xl shadow-warm border border-warm-border p-6">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="font-bold text-warm-textDark text-base flex items-center tracking-wide">
+                    <div class="bg-white rounded-3xl shadow-warm border border-warm-border p-4 sm:p-6">
+                        <div class="flex items-center justify-between mb-4 sm:mb-6">
+                            <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide">
                                 <i class="fa-solid fa-chart-area text-warm-mint mr-2"></i>歷史成長趨勢
                             </h3>
                         </div>
-                        <div class="relative w-full h-[300px]">
+                        <div class="relative w-full h-[250px] sm:h-[300px]">
                             <canvas id="growthChart"></canvas>
                         </div>
-                        <p class="text-center text-[10px] text-warm-textLight/70 mt-4 tracking-widest font-medium">
-                            <i class="fa-solid fa-circle-info mr-1"></i>系統會在您編輯資產時自動記錄
-                        </p>
                     </div>
 
                     <div id="history-list-container" class="mt-6">
-                        <div class="flex justify-between items-center mb-4 px-1">
-                            <h3 class="font-bold text-warm-textDark text-sm tracking-widest">
+                        <div class="flex justify-between items-center mb-3 sm:mb-4 px-1">
+                            <h3 class="font-bold text-warm-textDark text-xs sm:text-sm tracking-widest">
                                 <i class="fa-solid fa-clock-rotate-left mr-1.5"></i>歷史紀錄管理
                             </h3>
                             <button onclick="window.openHistoryModal()" class="text-warm-mint bg-warm-mintLight/30 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-warm-mintLight/60 transition tracking-wider shadow-sm flex items-center">
-                                <i class="fa-solid fa-plus mr-1 text-[10px]"></i>補登紀錄
+                                <i class="fa-solid fa-plus mr-1 text-[10px]"></i>補登
                             </button>
                         </div>
-                        <div id="list-history" class="space-y-2.5">
-                            <!-- 動態產生歷史紀錄列表 -->
-                        </div>
+                        <div id="list-history" class="space-y-2"></div>
                     </div>
                 </div>
+
             </div>
 
             <!-- 全局最後修改時間註記 -->
-            <div id="last-modified-footer" class="text-center text-[11px] text-warm-textLight/80 mt-10 pt-4 border-t border-warm-border border-dashed font-medium tracking-widest pb-2 flex justify-center items-center">
+            <div id="last-modified-footer" class="text-center text-[10px] sm:text-[11px] text-warm-textLight/80 mt-8 sm:mt-10 pt-4 border-t border-warm-border border-dashed font-medium tracking-widest pb-2 flex justify-center items-center">
                 <i class="fa-regular fa-clock mr-1.5"></i>最後修改：尚未紀錄
             </div>
 
         </main>
 
-        <!-- 模態框：編輯基礎資產 (現金/股票) -->
+        <!-- [保留] 模態框：編輯基礎資產 -->
         <div id="modal-assets" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
-            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
-                <h3 id="asset-modal-title" class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
+            <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <h3 id="asset-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
                     <i class="fa-solid fa-pen-to-square mr-2 text-warm-mint"></i>編輯資產
                 </h3>
                 <input type="hidden" id="input-asset-type">
-                <div class="space-y-5">
+                <div class="space-y-4 sm:space-y-5">
                     <div>
                         <label id="asset-modal-label" class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">金額</label>
                         <div class="relative">
@@ -323,34 +408,34 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button onclick="window.closeModal('assets')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
-                    <button onclick="window.saveBaseAsset()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存紀錄</button>
+                <div class="flex gap-3 mt-6 sm:mt-8">
+                    <button onclick="window.closeModal('assets')" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveBaseAsset()" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存</button>
                 </div>
             </div>
         </div>
 
-        <!-- 模態框：新增/編輯 其他投資 -->
+        <!-- [保留] 模態框：其他投資 -->
         <div id="modal-other-asset" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
-            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
-                <h3 id="other-asset-modal-title" class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
+            <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
+                <h3 id="other-asset-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
                     <i class="fa-solid fa-gem mr-2 text-warm-latte"></i>紀錄其他投資
                 </h3>
                 <input type="hidden" id="input-oa-id"> 
-                <div class="space-y-5">
+                <div class="space-y-4 sm:space-y-5">
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-tag mr-1"></i>投資名稱</label>
-                        <input type="text" id="input-oa-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="如：基金、加密貨幣">
+                        <input type="text" id="input-oa-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="如：基金、加密貨幣">
                     </div>
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-calendar-day mr-1"></i>紀錄日期</label>
-                        <input type="date" id="input-oa-date" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium">
+                        <input type="date" id="input-oa-date" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium">
                     </div>
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-dollar-sign mr-1"></i>現值金額</label>
                         <div class="relative">
                             <span class="absolute left-3 top-3.5 text-warm-textLight text-sm font-bold">$</span>
-                            <input type="number" id="input-oa-amount" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-7 pr-3 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="0">
+                            <input type="number" id="input-oa-amount" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-7 pr-3 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="0">
                         </div>
                     </div>
                     <div>
@@ -358,28 +443,25 @@
                         <textarea id="input-oa-remark" rows="2" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all text-sm placeholder:text-warm-textLight/50" placeholder="如：到期日、利率..."></textarea>
                     </div>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button onclick="window.closeModal('other-asset')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
-                    <button onclick="window.saveOtherAsset()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-latte hover:bg-[#C2A37D] transition shadow-md shadow-warm-latte/30">完成</button>
+                <div class="flex gap-3 mt-6 sm:mt-8">
+                    <button onclick="window.closeModal('other-asset')" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveOtherAsset()" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-latte hover:bg-[#C2A37D] transition shadow-md shadow-warm-latte/30">完成</button>
                 </div>
             </div>
         </div>
 
-        <!-- 模態框：新增/編輯收入 -->
+        <!-- [保留] 模態框：收入 -->
         <div id="modal-income" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
-            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
-                <h3 id="income-modal-title" class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
+            <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
+                <h3 id="income-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
                     <i id="income-modal-icon" class="fa-solid fa-coins mr-2 text-warm-peach"></i>紀錄收入
                 </h3>
-                
                 <input type="hidden" id="input-inc-cat">
                 <input type="hidden" id="input-inc-id"> 
-                
-                <div class="space-y-4">
-                    <!-- 項目名稱/類型 -->
+                <div class="space-y-4 sm:space-y-5">
                     <div id="group-inc-type" class="hidden">
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-tag mr-1"></i>收入類型</label>
-                        <select id="input-inc-type" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-peachLight transition-all font-medium">
+                        <select id="input-inc-type" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-peachLight transition-all font-medium">
                             <option value="固定薪資">固定薪資</option>
                             <option value="年終獎金">年終獎金</option>
                             <option value="其他加給">其他加給</option>
@@ -387,20 +469,16 @@
                     </div>
                     <div id="group-inc-name">
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-tag mr-1"></i>項目名稱</label>
-                        <input type="text" id="input-inc-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="如：股息、收租">
+                        <input type="text" id="input-inc-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all font-medium placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="如：股息、收租">
                     </div>
-                    
-                    <!-- 日期 -->
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-calendar-day mr-1"></i>紀錄日期</label>
-                        <input type="date" id="input-inc-date" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-medium">
+                        <input type="date" id="input-inc-date" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-medium">
                     </div>
-
-                    <!-- 週期與金額 -->
                     <div class="flex gap-3">
                         <div class="w-1/3">
                             <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">頻率</label>
-                            <select id="input-inc-freq" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-2 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-medium text-center">
+                            <select id="input-inc-freq" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-2 sm:px-3 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-medium text-center">
                                 <option value="月">月收</option>
                                 <option value="年">年收</option>
                             </select>
@@ -408,33 +486,31 @@
                         <div class="w-2/3">
                             <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5">金額</label>
                             <div class="relative">
-                                <span class="absolute left-3 top-3 text-warm-textLight text-sm font-bold">$</span>
-                                <input type="number" id="input-inc-amount" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-7 pr-3 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="0">
+                                <span class="absolute left-3 top-3.5 text-warm-textLight text-sm font-bold">$</span>
+                                <input type="number" id="input-inc-amount" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl pl-7 pr-3 py-3 sm:py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="0">
                             </div>
                         </div>
                     </div>
-
-                    <!-- 備註 -->
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-note-sticky mr-1"></i>備註 (選填)</label>
                         <textarea id="input-inc-remark" rows="2" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-warm-border transition-all text-sm placeholder:text-warm-textLight/50" placeholder="寫點筆記..."></textarea>
                     </div>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button onclick="window.closeModal('income')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
-                    <button onclick="window.saveIncome()" id="btn-save-income" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white transition shadow-md">完成</button>
+                <div class="flex gap-3 mt-6 sm:mt-8">
+                    <button onclick="window.closeModal('income')" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveIncome()" id="btn-save-income" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-white transition shadow-md">完成</button>
                 </div>
             </div>
         </div>
 
-        <!-- 模態框：新增/編輯 歷史紀錄 (圖表資料點) -->
+        <!-- [保留] 模態框：歷史成長紀錄 -->
         <div id="modal-history" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
-            <div class="bg-white rounded-3xl p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
-                <h3 class="text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
+            <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <h3 class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
                     <i class="fa-solid fa-clock-rotate-left mr-2 text-warm-mint"></i>編輯歷史紀錄
                 </h3>
                 <input type="hidden" id="input-hist-id">
-                <div class="space-y-5">
+                <div class="space-y-4 sm:space-y-5">
                     <div>
                         <label class="block text-xs font-bold tracking-widest text-warm-textLight mb-1.5"><i class="fa-solid fa-calendar-day mr-1"></i>紀錄日期</label>
                         <input type="date" id="input-hist-date" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-2xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-warm-mintLight transition-all font-medium">
@@ -447,9 +523,111 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex gap-3 mt-8">
-                    <button onclick="window.closeModal('history')" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
-                    <button onclick="window.saveHistory()" class="flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存</button>
+                <div class="flex gap-3 mt-6 sm:mt-8">
+                    <button onclick="window.closeModal('history')" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-card hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveHistory()" class="flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">儲存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模態框：股票損益 (智慧推算版) -->
+        <div id="modal-stock" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
+                <h3 id="stock-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-5 text-center tracking-wide">
+                    <i class="fa-solid fa-money-bill-trend-up mr-2 text-warm-latte"></i>紀錄股票損益
+                </h3>
+                <input type="hidden" id="input-stock-id">
+                
+                <div class="space-y-4">
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-[11px] font-bold tracking-widest text-warm-textLight mb-1">交易日期</label>
+                            <input type="date" id="input-stock-date" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-medium">
+                        </div>
+                        <div class="w-24">
+                            <label class="block text-[11px] font-bold tracking-widest text-warm-textLight mb-1">交易別</label>
+                            <select id="input-stock-type" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-medium text-center">
+                                <option value="現賣">現賣</option>
+                                <option value="當沖">當沖</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-[11px] font-bold tracking-widest text-warm-textLight mb-1">股票名稱 (如：台積電)</label>
+                        <input type="text" id="input-stock-name" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-sm font-bold placeholder:font-normal placeholder:text-warm-textLight/50" placeholder="輸入股名">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <div class="flex-1">
+                            <label class="block text-[11px] font-bold tracking-widest text-warm-textLight mb-1">成交單價</label>
+                            <input type="number" id="input-stock-price" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-sm font-bold" placeholder="0">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-[11px] font-bold tracking-widest text-warm-textLight mb-1">交易股數</label>
+                            <input type="number" id="input-stock-shares" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-sm font-bold" placeholder="0">
+                        </div>
+                    </div>
+
+                    <!-- 智慧損益結算區塊 -->
+                    <div class="p-3 bg-warm-card rounded-xl border border-warm-border/80">
+                        <div class="flex justify-between items-center mb-2.5">
+                            <label class="text-[11px] font-bold tracking-widest text-warm-textDark"><i class="fa-solid fa-calculator mr-1 text-warm-latte"></i>損益結算 <span class="text-[9px] text-warm-textLight ml-1">(填任意2項)</span></label>
+                            <div class="text-[10px] text-warm-textLight font-bold">報酬率: <span id="display-stock-rate" class="text-warm-textLight text-sm ml-0.5">0.00%</span></div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="block text-[10px] font-bold text-warm-textLight mb-1 text-center">總成本</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span>
+                                    <input type="number" id="input-stock-cost" oninput="window.handleStockCalc('cost')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-warm-textLight mb-1 text-center">總收入</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span>
+                                    <input type="number" id="input-stock-income" oninput="window.handleStockCalc('income')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-warm-textLight mb-1 text-center">損益</label>
+                                <div class="relative">
+                                    <span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span>
+                                    <input type="number" id="input-stock-profit" oninput="window.handleStockCalc('profit')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="window.closeModal('stock')" class="flex-1 py-3.5 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-bg border border-warm-border hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.saveStock()" class="flex-1 py-3.5 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-latte hover:bg-[#C2A37D] transition shadow-md shadow-warm-latte/30">儲存紀錄</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- [全新] 模態框：匯入 Excel/CSV -->
+        <div id="modal-stock-import" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <h3 class="text-lg sm:text-xl font-bold text-warm-textDark mb-4 text-center tracking-wide">
+                    <i class="fa-solid fa-file-excel mr-2 text-warm-mint"></i>匯入 Excel 資料
+                </h3>
+                <p class="text-xs text-warm-textLight text-center mb-6 leading-relaxed">
+                    支援一次性讀取大量股票交易紀錄。<br>請確保您的檔案包含以下欄位標題：<br>
+                    <span class="font-bold text-warm-textDark">日期、商品、交易別、價格、股數、成本、收入</span>
+                </p>
+                
+                <div class="space-y-4">
+                    <div class="p-4 bg-warm-bg border border-warm-border rounded-2xl text-center">
+                        <input type="file" id="input-excel-file" accept=".xlsx, .xls, .csv" class="w-full text-sm text-warm-textDark file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-warm-latte file:text-white hover:file:bg-[#C2A37D] transition-all">
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 mt-6">
+                    <button onclick="window.closeModal('stock-import')" class="flex-1 py-3.5 rounded-2xl text-sm font-bold tracking-wider text-warm-textLight bg-warm-bg border border-warm-border hover:bg-[#FDF0DE] transition">取消</button>
+                    <button onclick="window.processExcelImport()" class="flex-1 py-3.5 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30">確認匯入</button>
                 </div>
             </div>
         </div>
@@ -462,32 +640,32 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // 日期小工具
         const getTodayStr = () => {
             const d = new Date();
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         };
-
         const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 5);
 
         let state = {
             assets: { cash: 0, stocks: 0 },
-            otherAssets: [], // { id, name, amount, remark, date }
-            activeIncomes: [], // { id, name, freq, amount, remark, date }
+            otherAssets: [], 
+            activeIncomes: [], 
             passiveIncomes: [], 
-            history: [], // { id, date: 'YYYY-MM-DD', total: number }
+            stockRecords: [],
+            history: [], 
             lastModified: null 
         };
 
         let auth, db, dbRef, currentUser = null;
         let growthChartInstance = null;
+        let stockEditHistory = [];
 
         // ----------------------------------------------------
         // 1. 本地備份引擎 (IndexedDB)
         // ----------------------------------------------------
         const getLocalDB = () => {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open('LuminAssetDB', 4); 
+                const request = indexedDB.open('LuminAssetDB', 5); 
                 request.onupgradeneeded = (e) => {
                     const db = e.target.result;
                     if (!db.objectStoreNames.contains('store')) db.createObjectStore('store');
@@ -531,18 +709,13 @@
         const updateAssetHistory = () => {
             const total = calculateTotalAssets();
             const today = getTodayStr();
-            
             const existingIndex = state.history.findIndex(h => h.date === today);
-            if (existingIndex !== -1) {
-                state.history[existingIndex].total = total;
-            } else {
-                state.history.push({ id: generateId(), date: today, total: total });
-            }
+            if (existingIndex !== -1) state.history[existingIndex].total = total;
+            else state.history.push({ id: generateId(), date: today, total: total });
             state.history.sort((a, b) => new Date(a.date) - new Date(b.date));
         };
 
         const markModified = () => { state.lastModified = Date.now(); };
-
         const formatLastModified = (timestamp) => {
             if (!timestamp) return "尚未紀錄";
             const d = new Date(timestamp);
@@ -562,14 +735,13 @@
             state.otherAssets = data.otherAssets || [];
             state.activeIncomes = data.activeIncomes || [];
             state.passiveIncomes = data.passiveIncomes || [];
+            state.stockRecords = data.stockRecords || [];
             state.history = data.history || [];
             state.lastModified = data.lastModified || null;
             
-            // 確保歷史紀錄有 ID
             state.history.forEach(h => { if(!h.id) h.id = generateId(); });
-            // 確保收入與投資有日期
             const ensureDate = arr => arr.forEach(item => { if(!item.date) item.date = getTodayStr(); });
-            ensureDate(state.otherAssets); ensureDate(state.activeIncomes); ensureDate(state.passiveIncomes);
+            ensureDate(state.otherAssets); ensureDate(state.activeIncomes); ensureDate(state.passiveIncomes); ensureDate(state.stockRecords);
 
             if (state.history.length === 0 && calculateTotalAssets() > 0) updateAssetHistory();
         };
@@ -627,36 +799,33 @@
         const syncData = async (isInit = false) => {
             await saveToLocal(state);
             if (!currentUser || !dbRef) {
-                if (!isInit) { setStatus("已存檔 (本地)"); setTimeout(() => setStatus("本地存檔模式"), 2000); }
+                if (!isInit) { setStatus("已存檔(本地)"); setTimeout(() => setStatus("本地存檔模式"), 2000); }
                 return;
             }
             try {
                 if(!isInit) setStatus("儲存中");
                 await setDoc(dbRef, state);
                 if(!isInit) { setStatus("已雲端備份"); setTimeout(() => setStatus("已同步"), 2000); }
-            } catch (e) { setStatus("已存檔 (本地)"); }
+            } catch (e) { setStatus("已存檔(本地)"); }
         };
 
         const setStatus = (msg) => {
             const el = document.getElementById('sync-status');
             el.innerHTML = msg.includes('同步') || msg.includes('存檔') || msg.includes('備份')
-                ? `<i class="fa-solid fa-cloud-check mr-1"></i> ${msg}` 
-                : `<i class="fa-solid fa-cloud mr-1"></i> ${msg}`;
+                ? `<i class="fa-solid fa-cloud-check mr-1"></i> ${msg}` : `<i class="fa-solid fa-cloud mr-1"></i> ${msg}`;
             if(msg === '讀取中' || msg === '儲存中') el.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> ${msg}`;
-            
-            if (msg.includes('本地')) el.className = "text-xs font-medium bg-warm-latte px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300 shadow-sm";
-            else if (msg.includes('同步') || msg.includes('備份')) el.className = "text-xs font-medium bg-white/30 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300 shadow-sm";
-            else el.className = "text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300";
         };
 
-        const formatMoney = (amount) => '$' + Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const formatMoney = (amount) => Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        const formatPct = (num) => (num > 0 ? '+' : '') + Number(num).toFixed(2) + '%';
 
         // ----------------------------------------------------
         // 4. 畫面渲染
         // ----------------------------------------------------
-        const renderAll = () => {
+        window.renderAll = () => {
             renderAssets();
             renderIncomes();
+            renderStocksTab(); 
             renderGrowthTab();
             document.getElementById('last-modified-footer').innerHTML = `<i class="fa-regular fa-clock mr-1.5"></i>最後修改：${formatLastModified(state.lastModified)}`;
         };
@@ -667,14 +836,14 @@
             const othersTotal = state.otherAssets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
             const total = cash + stocks + othersTotal;
             
-            document.getElementById('display-total-assets').innerText = formatMoney(total);
-            document.getElementById('display-cash-amt').innerText = formatMoney(cash);
-            document.getElementById('display-stocks-amt').innerText = formatMoney(stocks);
+            document.getElementById('display-total-assets').innerText = '$' + formatMoney(total);
+            document.getElementById('display-cash-amt').innerText = '$' + formatMoney(cash);
+            document.getElementById('display-stocks-amt').innerText = '$' + formatMoney(stocks);
             
             const sumGroup = document.getElementById('others-summary-group');
             if(othersTotal > 0) {
                 sumGroup.classList.remove('hidden');
-                document.getElementById('display-others-total').innerText = formatMoney(othersTotal);
+                document.getElementById('display-others-total').innerText = '$' + formatMoney(othersTotal);
             } else { sumGroup.classList.add('hidden'); }
 
             const safePct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
@@ -693,7 +862,6 @@
                 emptyOther.classList.remove('hidden');
             } else {
                 emptyOther.classList.add('hidden');
-                // 依日期遞減排序
                 [...state.otherAssets].sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(item => {
                     otherAssetsContainer.innerHTML += `
                         <div class="list-card bg-white rounded-2xl p-4 border border-warm-border border-l-[4px] border-l-warm-latte flex items-center justify-between shadow-sm">
@@ -705,14 +873,10 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-3">
-                                <span class="font-bold text-warm-textDark mr-1 text-lg">${formatMoney(item.amount)}</span>
+                                <span class="font-bold text-warm-textDark mr-1 text-lg">$${formatMoney(item.amount)}</span>
                                 <div class="flex items-center gap-1.5 border-l border-warm-border pl-3">
-                                    <button onclick="window.openOtherAssetModal('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-latte hover:bg-warm-latteLight/30 transition flex justify-center items-center" title="編輯">
-                                        <i class="fa-solid fa-pen text-xs"></i>
-                                    </button>
-                                    <button onclick="window.deleteOtherAsset('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center" title="刪除">
-                                        <i class="fa-solid fa-trash-can text-xs"></i>
-                                    </button>
+                                    <button onclick="window.openOtherAssetModal('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-latte hover:bg-warm-latteLight/30 transition flex justify-center items-center" title="編輯"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button onclick="window.deleteOtherAsset('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center" title="刪除"><i class="fa-solid fa-trash-can text-xs"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -740,14 +904,10 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
-                            <span class="font-bold text-warm-textDark mr-1 text-lg">${formatMoney(item.amount)}</span>
+                            <span class="font-bold text-warm-textDark mr-1 text-lg">$${formatMoney(item.amount)}</span>
                             <div class="flex items-center gap-1.5 border-l border-warm-border pl-3">
-                                <button onclick="window.openIncomeModal('${type}', '${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-mint hover:bg-warm-mintLight/30 transition flex justify-center items-center" title="編輯">
-                                    <i class="fa-solid fa-pen text-xs"></i>
-                                </button>
-                                <button onclick="window.deleteIncome('${item.id}', '${type}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center" title="刪除">
-                                    <i class="fa-solid fa-trash-can text-xs"></i>
-                                </button>
+                                <button onclick="window.openIncomeModal('${type}', '${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-mint hover:bg-warm-mintLight/30 transition flex justify-center items-center"><i class="fa-solid fa-pen text-xs"></i></button>
+                                <button onclick="window.deleteIncome('${item.id}', '${type}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
                             </div>
                         </div>
                     </div>
@@ -782,11 +942,100 @@
                 });
             }
 
-            document.getElementById('display-yearly-total').innerText = formatMoney(Math.round(activeYearly + passiveYearly));
-            document.getElementById('display-monthly-total').innerText = formatMoney(Math.round(activeMonthly + passiveMonthly));
-            document.getElementById('display-yearly-passive').innerText = formatMoney(Math.round(passiveYearly));
-            document.getElementById('display-monthly-active').innerText = formatMoney(Math.round(activeMonthly));
-            document.getElementById('display-monthly-passive').innerText = formatMoney(Math.round(passiveMonthly));
+            document.getElementById('display-yearly-total').innerText = '$' + formatMoney(Math.round(activeYearly + passiveYearly));
+            document.getElementById('display-monthly-total').innerText = '$' + formatMoney(Math.round(activeMonthly + passiveMonthly));
+            document.getElementById('display-yearly-passive').innerText = '$' + formatMoney(Math.round(passiveYearly));
+            document.getElementById('display-monthly-active').innerText = '$' + formatMoney(Math.round(activeMonthly));
+            document.getElementById('display-monthly-passive').innerText = '$' + formatMoney(Math.round(passiveMonthly));
+        };
+
+        window.renderStocksTab = () => {
+            const yearFilterEl = document.getElementById('filter-stock-year');
+            const typeFilter = document.getElementById('filter-stock-type').value;
+            const nameFilter = document.getElementById('filter-stock-name').value.trim().toLowerCase();
+
+            const years = new Set(state.stockRecords.map(s => s.date.substring(0, 4)));
+            const currentYearValue = yearFilterEl.value;
+            yearFilterEl.innerHTML = '<option value="all">所有年份</option>';
+            Array.from(years).sort().reverse().forEach(y => {
+                yearFilterEl.innerHTML += `<option value="${y}">${y}年</option>`;
+            });
+            if(years.has(currentYearValue) || currentYearValue === 'all') yearFilterEl.value = currentYearValue;
+
+            const yearFilter = yearFilterEl.value;
+
+            const today = new Date();
+            const currentYearStr = today.getFullYear().toString();
+            const currentMonthStr = `${currentYearStr}-${String(today.getMonth()+1).padStart(2, '0')}`;
+            
+            let monthTotal = 0, yearTotal = 0;
+            state.stockRecords.forEach(s => {
+                const profit = s.income - s.cost;
+                if(s.date.startsWith(currentYearStr)) yearTotal += profit;
+                if(s.date.startsWith(currentMonthStr)) monthTotal += profit;
+            });
+
+            let filtered = state.stockRecords.filter(s => {
+                if(yearFilter !== 'all' && !s.date.startsWith(yearFilter)) return false;
+                if(typeFilter !== 'all' && s.type !== typeFilter) return false;
+                if(nameFilter && !s.name.toLowerCase().includes(nameFilter)) return false;
+                return true;
+            });
+
+            let filterTotalProfit = 0;
+            filtered.forEach(s => filterTotalProfit += (s.income - s.cost));
+
+            const totalEl = document.getElementById('display-stock-filter-total');
+            totalEl.innerText = (filterTotalProfit >= 0 ? '+$' : '-$') + formatMoney(Math.abs(filterTotalProfit));
+            totalEl.className = `text-4xl font-bold tracking-tight mb-5 relative z-10 ${filterTotalProfit >= 0 ? 'text-white' : 'text-white/80'}`;
+
+            document.getElementById('display-stock-month-total').innerText = (monthTotal>=0?'+$':'-$') + formatMoney(Math.abs(monthTotal));
+            document.getElementById('display-stock-year-total').innerText = (yearTotal>=0?'+$':'-$') + formatMoney(Math.abs(yearTotal));
+
+            const container = document.getElementById('list-stocks');
+            const emptyState = document.getElementById('empty-stocks');
+            container.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(s => {
+                    const profit = s.income - s.cost;
+                    const returnRate = s.cost > 0 ? (profit / s.cost * 100) : 0;
+                    const pClass = profit >= 0 ? 'text-warm-stockGain' : 'text-warm-stockLoss';
+                    const bgBadge = profit >= 0 ? 'bg-warm-stockGain/10 border-warm-stockGain/20' : 'bg-warm-stockLoss/10 border-warm-stockLoss/20';
+
+                    container.innerHTML += `
+                        <div class="list-card bg-white rounded-2xl p-4 border border-warm-border flex flex-col shadow-sm">
+                            <div class="flex justify-between items-start mb-3 pb-3 border-b border-warm-border/50">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="font-bold text-warm-textDark text-[15px] tracking-wide">${s.name}</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 rounded font-bold tracking-widest bg-warm-card text-warm-textLight border border-warm-border">${s.type}</span>
+                                    </div>
+                                    <span class="text-[10px] text-warm-textLight tracking-widest"><i class="fa-regular fa-calendar mr-1"></i>${s.date}</span>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-bold text-lg ${pClass} tracking-tight">${profit >= 0 ? '+' : ''}${formatMoney(profit)}</div>
+                                    <div class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${bgBadge} ${pClass} mt-0.5">${formatPct(returnRate)}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center text-xs text-warm-textDark font-medium px-1">
+                                <div class="flex gap-4">
+                                    <div><span class="text-warm-textLight mr-1">售價</span>${s.price}</div>
+                                    <div><span class="text-warm-textLight mr-1">股數</span>${formatMoney(s.shares)}</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="window.openStockModal('${s.id}')" class="w-7 h-7 rounded-full text-warm-textLight hover:text-warm-mint hover:bg-warm-bg transition flex justify-center items-center"><i class="fa-solid fa-pen text-[11px]"></i></button>
+                                    <button onclick="window.deleteStock('${s.id}')" class="w-7 h-7 rounded-full text-warm-textLight hover:text-warm-stockLoss hover:bg-warm-bg transition flex justify-center items-center"><i class="fa-solid fa-trash-can text-[11px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
         };
 
         const renderGrowthTab = () => {
@@ -796,7 +1045,7 @@
             const historyContainer = document.getElementById('list-history');
             historyContainer.innerHTML = '';
             
-            const recentHistory = [...state.history].reverse(); // 全部顯示或加分頁，這裡顯示全部倒序
+            const recentHistory = [...state.history].reverse(); 
             if (recentHistory.length === 0) {
                 historyContainer.innerHTML = `
                     <div class="text-center py-8 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
@@ -805,29 +1054,26 @@
                     </div>`;
             } else {
                 recentHistory.forEach((item, index) => {
-                    const diffHtml = index < recentHistory.length - 1 
-                        ? `<span class="text-[10px] text-warm-mint bg-warm-mintLight/30 px-1.5 py-0.5 rounded ml-2 font-bold">${item.total - recentHistory[index+1].total > 0 ? '+':''}${formatMoney(item.total - recentHistory[index+1].total)}</span>`
+                    const diff = item.total - (recentHistory[index+1]?.total || item.total);
+                    const diffHtml = index < recentHistory.length - 1 && diff !== 0
+                        ? `<span class="text-[10px] ${diff>0?'text-warm-mint bg-warm-mintLight/30':'text-warm-stockGain bg-warm-peachLight/30'} px-1.5 py-0.5 rounded ml-2 font-bold">${diff>0?'+':''}${formatMoney(diff)}</span>`
                         : '';
                     historyContainer.innerHTML += `
-                        <div class="list-card flex justify-between items-center bg-white p-4 rounded-2xl border border-warm-border shadow-sm">
+                        <div class="list-card flex justify-between items-center bg-white p-3.5 sm:p-4 rounded-2xl border border-warm-border shadow-sm">
                             <div class="flex items-center gap-2">
-                                <div class="w-8 h-8 rounded-full bg-warm-bg flex items-center justify-center border border-warm-border text-warm-textLight">
-                                    <i class="fa-solid fa-calendar-day text-xs"></i>
+                                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-warm-bg flex items-center justify-center border border-warm-border text-warm-textLight">
+                                    <i class="fa-solid fa-calendar-day text-[10px] sm:text-xs"></i>
                                 </div>
-                                <span class="text-warm-textDark text-sm font-bold tracking-widest">${item.date}</span>
+                                <span class="text-warm-textDark text-xs sm:text-sm font-bold tracking-widest">${item.date}</span>
                             </div>
-                            <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-2 sm:gap-3">
                                 <div class="flex flex-col items-end">
-                                    <span class="font-bold text-warm-textDark text-base">${formatMoney(item.total)}</span>
-                                    ${item.total - (recentHistory[index+1]?.total || item.total) !== 0 ? diffHtml : ''}
+                                    <span class="font-bold text-warm-textDark text-sm sm:text-base">$${formatMoney(item.total)}</span>
+                                    ${diffHtml}
                                 </div>
                                 <div class="flex items-center gap-1 border-l border-warm-border pl-2 ml-1">
-                                    <button onclick="window.openHistoryModal('${item.id}')" class="w-7 h-7 rounded-full text-warm-textLight hover:text-warm-mint hover:bg-warm-mintLight/30 transition flex justify-center items-center">
-                                        <i class="fa-solid fa-pen text-xs"></i>
-                                    </button>
-                                    <button onclick="window.deleteHistory('${item.id}')" class="w-7 h-7 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center">
-                                        <i class="fa-solid fa-trash-can text-xs"></i>
-                                    </button>
+                                    <button onclick="window.openHistoryModal('${item.id}')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full text-warm-textLight hover:text-warm-mint hover:bg-warm-mintLight/30 transition flex justify-center items-center"><i class="fa-solid fa-pen text-[10px] sm:text-xs"></i></button>
+                                    <button onclick="window.deleteHistory('${item.id}')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center"><i class="fa-solid fa-trash-can text-[10px] sm:text-xs"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -882,23 +1128,24 @@
                             beginAtZero: false, grid: { color: '#F2E8D8', drawBorder: false },
                             ticks: { color: '#9E887D', font: { size: 10, weight: 'bold' }, callback: v => v >= 10000 ? (v / 10000) + ' 萬' : v }
                         },
-                        x: { grid: { display: false }, ticks: { color: '#9E887D', font: { size: 10, weight: 'bold' } } }
+                        x: { grid: { display: false }, ticks: { color: '#9E887D', font: { size: 9, weight: 'bold' } } }
                     }
                 }
             });
         };
 
         // ----------------------------------------------------
-        // 6. UI 互動
+        // 5. UI 互動與儲存
         // ----------------------------------------------------
         window.switchTab = (tab) => {
-            ['assets', 'income', 'growth'].forEach(t => {
+            ['assets', 'income', 'stocks', 'growth'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).className = "flex-1 py-3.5 flex justify-center items-center gap-2 tab-inactive transition-colors duration-200";
+                document.getElementById(`nav-${t}`).className = "flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-inactive transition-colors duration-200";
             });
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`nav-${tab}`).className = "flex-1 py-3.5 flex justify-center items-center gap-2 tab-active transition-colors duration-200";
+            document.getElementById(`nav-${tab}`).className = "flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-active transition-colors duration-200";
             if (tab === 'growth') setTimeout(renderGrowthTab, 50);
+            if (tab === 'stocks') renderStocksTab();
         };
 
         const showModal = (modalId) => {
@@ -923,28 +1170,224 @@
             const input = document.getElementById(inputId);
             input.classList.add('border-red-400', 'bg-red-50');
             input.value = '';
-            input.placeholder = "請輸入正確數值";
+            input.placeholder = "請輸入數值";
             setTimeout(() => { input.classList.remove('border-red-400', 'bg-red-50'); input.placeholder = "0"; }, 2000);
         }
 
-        // --- 基礎資產編輯 ---
+        // --- 匯入 Excel 邏輯 ---
+        window.openStockImportModal = () => {
+            document.getElementById('input-excel-file').value = '';
+            showModal('stock-import');
+        };
+
+        window.processExcelImport = async () => {
+            const fileInput = document.getElementById('input-excel-file');
+            if (!fileInput.files.length) {
+                alert('請先選擇 Excel 檔案！');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const sheet = workbook.Sheets[sheetName];
+                    // raw: false 會將日期等欄位格式化成肉眼看到的字串
+                    const json = XLSX.utils.sheet_to_json(sheet, {raw: false});
+                    
+                    let importedCount = 0;
+
+                    json.forEach(row => {
+                        const dateRaw = row['日期'] || '';
+                        const name = row['商品'] || row['股票名稱'] || '';
+                        const type = row['交易別'] || '現賣';
+                        const priceRaw = row['價格'] || row['成交價'] || '0';
+                        const sharesRaw = row['股數'] || row['交易股數'] || '0';
+                        const costRaw = row['成本'] || row['總成本'] || '0';
+                        const incomeRaw = row['收入'] || row['總收入'] || '0';
+
+                        if (!name || !dateRaw) return; // 略過無效行
+
+                        // 處理日期格式 (將 / 轉為 -)
+                        let date = dateRaw.replace(/\//g, '-');
+                        if (date.length > 10) date = date.substring(0, 10);
+
+                        const parseNum = (str) => Number(String(str).replace(/,/g, '')) || 0;
+
+                        state.stockRecords.push({
+                            id: generateId(),
+                            date: date,
+                            type: type === '當沖' ? '當沖' : '現賣', // 強制對齊系統的兩個類別
+                            name: name,
+                            price: parseNum(priceRaw),
+                            shares: parseNum(sharesRaw),
+                            cost: parseNum(costRaw),
+                            income: parseNum(incomeRaw)
+                        });
+                        importedCount++;
+                    });
+
+                    if (importedCount > 0) {
+                        markModified();
+                        window.renderAll();
+                        window.closeModal('stock-import');
+                        await syncData();
+                        alert(`成功匯入 ${importedCount} 筆資料！`);
+                    } else {
+                        alert('找不到符合格式的資料，請確認第一列欄位名稱是否包含：日期、商品、交易別、價格、股數、成本、收入。');
+                    }
+                } catch(error) {
+                    console.error(error);
+                    alert('讀取檔案失敗，請確定是有效的 .xlsx 或 .csv 檔案。');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        };
+
+        // --- 股票損益 (智慧結算邏輯) ---
+        window.handleStockCalc = (sourceField) => {
+            stockEditHistory = stockEditHistory.filter(s => s !== sourceField);
+            stockEditHistory.unshift(sourceField);
+            if(stockEditHistory.length > 2) stockEditHistory.pop();
+
+            const costEl = document.getElementById('input-stock-cost');
+            const incomeEl = document.getElementById('input-stock-income');
+            const profitEl = document.getElementById('input-stock-profit');
+            const rateEl = document.getElementById('display-stock-rate');
+
+            let cost = parseFloat(costEl.value);
+            let income = parseFloat(incomeEl.value);
+            let profit = parseFloat(profitEl.value);
+
+            const hasCost = !isNaN(cost);
+            const hasIncome = !isNaN(income);
+            const hasProfit = !isNaN(profit);
+
+            if (stockEditHistory.length === 2) {
+                const pair = stockEditHistory;
+                if (pair.includes('cost') && pair.includes('income') && hasCost && hasIncome) {
+                    profit = income - cost;
+                    profitEl.value = profit;
+                } else if (pair.includes('cost') && pair.includes('profit') && hasCost && hasProfit) {
+                    income = cost + profit;
+                    incomeEl.value = income;
+                } else if (pair.includes('income') && pair.includes('profit') && hasIncome && hasProfit) {
+                    cost = income - profit;
+                    costEl.value = cost; 
+                }
+            }
+
+            cost = parseFloat(costEl.value);
+            profit = parseFloat(profitEl.value);
+            if (!isNaN(cost) && !isNaN(profit) && cost > 0) {
+                const rate = (profit / cost) * 100;
+                rateEl.innerText = formatPct(rate);
+                rateEl.className = `text-sm ml-0.5 font-bold ${rate >= 0 ? 'text-warm-stockGain' : 'text-warm-stockLoss'}`;
+            } else {
+                rateEl.innerText = '0.00%';
+                rateEl.className = 'text-warm-textLight text-sm ml-0.5 font-bold';
+            }
+        };
+
+        window.openStockModal = (id = null) => {
+            document.getElementById('input-stock-id').value = id || ''; 
+            const titleEl = document.getElementById('stock-modal-title');
+            
+            stockEditHistory = [];
+
+            if (id) {
+                titleEl.innerHTML = `<i class="fa-solid fa-pen-to-square mr-2 text-warm-latte"></i>編輯股票交易`;
+                const item = state.stockRecords.find(i => i.id === id);
+                if(item) {
+                    document.getElementById('input-stock-date').value = item.date || getTodayStr();
+                    document.getElementById('input-stock-type').value = item.type;
+                    document.getElementById('input-stock-name').value = item.name;
+                    document.getElementById('input-stock-price').value = item.price || '';
+                    document.getElementById('input-stock-shares').value = item.shares || '';
+                    
+                    document.getElementById('input-stock-cost').value = item.cost;
+                    document.getElementById('input-stock-income').value = item.income;
+                    document.getElementById('input-stock-profit').value = item.income - item.cost;
+                    
+                    stockEditHistory = ['income', 'cost'];
+                    window.handleStockCalc('cost'); 
+                }
+            } else {
+                titleEl.innerHTML = `<i class="fa-solid fa-money-bill-trend-up mr-2 text-warm-latte"></i>紀錄股票損益`;
+                document.getElementById('input-stock-date').value = getTodayStr();
+                document.getElementById('input-stock-type').value = '現賣';
+                document.getElementById('input-stock-name').value = '';
+                document.getElementById('input-stock-price').value = '';
+                document.getElementById('input-stock-shares').value = '';
+                
+                document.getElementById('input-stock-cost').value = '';
+                document.getElementById('input-stock-income').value = '';
+                document.getElementById('input-stock-profit').value = '';
+                
+                document.getElementById('display-stock-rate').innerText = '0.00%';
+                document.getElementById('display-stock-rate').className = 'text-warm-textLight text-sm ml-0.5 font-bold';
+            }
+            showModal('stock');
+        };
+
+        window.saveStock = async () => {
+            const id = document.getElementById('input-stock-id').value;
+            const name = document.getElementById('input-stock-name').value.trim() || "未命名股票";
+            
+            const price = Number(document.getElementById('input-stock-price').value) || 0;
+            const shares = Number(document.getElementById('input-stock-shares').value) || 0;
+            
+            const costInput = document.getElementById('input-stock-cost');
+            const incomeInput = document.getElementById('input-stock-income');
+            const cost = Number(costInput.value);
+            const income = Number(incomeInput.value);
+
+            if (costInput.value.trim() === '' || isNaN(cost)) { indicateError('input-stock-cost'); return; }
+            if (incomeInput.value.trim() === '' || isNaN(income)) { indicateError('input-stock-income'); return; }
+
+            const data = {
+                id: id || generateId(),
+                date: document.getElementById('input-stock-date').value || getTodayStr(),
+                type: document.getElementById('input-stock-type').value,
+                name, price, shares, cost, income
+            };
+
+            if (id) {
+                const idx = state.stockRecords.findIndex(i => i.id === id);
+                if(idx !== -1) state.stockRecords[idx] = data;
+            } else {
+                state.stockRecords.push(data);
+            }
+
+            markModified(); window.renderAll(); window.closeModal('stock'); await syncData();
+        };
+
+        window.deleteStock = async (id) => {
+            state.stockRecords = state.stockRecords.filter(i => i.id !== id);
+            markModified(); window.renderAll(); await syncData();
+        };
+
+        // --- 其他基礎功能 ---
         window.openAssetModal = (type) => {
             document.getElementById('input-asset-type').value = type;
-            document.getElementById('asset-modal-label').innerHTML = `<i class="fa-solid ${type === 'cash' ? 'fa-money-bill' : 'fa-chart-simple'} mr-1"></i> ${type === 'cash' ? "現金儲蓄金額" : "股票現值金額"}`;
+            document.getElementById('asset-modal-label').innerHTML = type === 'cash' ? "現金儲蓄金額" : "股票現值金額";
             document.getElementById('input-asset-amt').value = state.assets[type] || '';
             showModal('assets');
         };
-
         window.saveBaseAsset = async () => {
             const type = document.getElementById('input-asset-type').value;
             const amtInput = document.getElementById('input-asset-amt');
             const amt = Number(amtInput.value);
             if (amt < 0 || amtInput.value.trim() === '') { indicateError('input-asset-amt'); return; }
             state.assets[type] = amt || 0;
-            updateAssetHistory(); markModified(); renderAll(); window.closeModal('assets'); await syncData(); 
+            updateAssetHistory(); markModified(); window.renderAll(); window.closeModal('assets'); await syncData(); 
         };
 
-        // --- 其他投資編輯 ---
         window.openOtherAssetModal = (id = null) => {
             document.getElementById('input-oa-id').value = id || '';
             const titleEl = document.getElementById('other-asset-modal-title');
@@ -966,66 +1409,45 @@
             }
             showModal('other-asset');
         };
-
         window.saveOtherAsset = async () => {
             const id = document.getElementById('input-oa-id').value;
             const name = document.getElementById('input-oa-name').value.trim() || "未命名投資";
             const date = document.getElementById('input-oa-date').value || getTodayStr();
-            const amountInput = document.getElementById('input-oa-amount');
-            const amount = Number(amountInput.value);
-            const remark = document.getElementById('input-oa-remark').value.trim();
-
-            if (amount < 0 || amountInput.value.trim() === '') { indicateError('input-oa-amount'); return; }
-
+            const amtInput = document.getElementById('input-oa-amount');
+            const amount = Number(amtInput.value);
+            if (amount < 0 || amtInput.value.trim() === '') { indicateError('input-oa-amount'); return; }
             if (id) {
-                const index = state.otherAssets.findIndex(i => i.id === id);
-                if (index !== -1) state.otherAssets[index] = { ...state.otherAssets[index], name, amount, date, remark };
-            } else {
-                state.otherAssets.push({ id: generateId(), name, amount, date, remark });
-            }
-
-            updateAssetHistory(); markModified(); renderAll(); window.closeModal('other-asset'); await syncData();
+                const idx = state.otherAssets.findIndex(i => i.id === id);
+                if (idx !== -1) state.otherAssets[idx] = { ...state.otherAssets[idx], name, amount, date, remark: document.getElementById('input-oa-remark').value.trim() };
+            } else { state.otherAssets.push({ id: generateId(), name, amount, date, remark: document.getElementById('input-oa-remark').value.trim() }); }
+            updateAssetHistory(); markModified(); window.renderAll(); window.closeModal('other-asset'); await syncData();
         };
-
         window.deleteOtherAsset = async (id) => {
             state.otherAssets = state.otherAssets.filter(i => i.id !== id);
-            updateAssetHistory(); markModified(); renderAll(); await syncData();
+            updateAssetHistory(); markModified(); window.renderAll(); await syncData();
         };
 
-        // --- 收入編輯 ---
         window.openIncomeModal = (category, id = null) => {
             document.getElementById('input-inc-cat').value = category;
             document.getElementById('input-inc-id').value = id || ''; 
             const isActive = category === 'active';
-            const titleEl = document.getElementById('income-modal-title');
-            const saveBtn = document.getElementById('btn-save-income');
+            document.getElementById('income-modal-title').innerHTML = id ? `<i class="fa-solid fa-pen-to-square mr-2 ${isActive?'text-warm-peach':'text-warm-latte'}"></i>編輯紀錄` : `<i class="fa-solid fa-coins mr-2 ${isActive?'text-warm-peach':'text-warm-latte'}"></i>${isActive?'新增主動收入':'新增被動收入'}`;
+            document.getElementById('btn-save-income').className = `flex-1 py-3.5 sm:py-4 rounded-2xl text-sm font-bold tracking-wider text-white ${isActive?'bg-warm-peach hover:bg-[#D68F85] shadow-warm-peach/30':'bg-warm-latte hover:bg-[#C2A37D] shadow-warm-latte/30'} transition shadow-md`;
             
-            titleEl.innerHTML = id ? `<i class="fa-solid fa-pen-to-square mr-2 ${isActive ? 'text-warm-peach' : 'text-warm-latte'}"></i>編輯紀錄` : `<i class="fa-solid fa-coins mr-2 ${isActive ? 'text-warm-peach' : 'text-warm-latte'}"></i>${isActive ? '新增主動收入' : '新增被動收入'}`;
-            
-            if (isActive) {
-                saveBtn.className = "flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-peach hover:bg-[#D68F85] transition shadow-md shadow-warm-peach/30";
-                document.getElementById('group-inc-type').classList.remove('hidden');
-                document.getElementById('group-inc-name').classList.add('hidden');
-            } else {
-                saveBtn.className = "flex-1 py-4 rounded-2xl text-sm font-bold tracking-wider text-white bg-warm-latte hover:bg-[#C2A37D] transition shadow-md shadow-warm-latte/30";
-                document.getElementById('group-inc-type').classList.add('hidden');
-                document.getElementById('group-inc-name').classList.remove('hidden');
-            }
+            if (isActive) { document.getElementById('group-inc-type').classList.remove('hidden'); document.getElementById('group-inc-name').classList.add('hidden'); } 
+            else { document.getElementById('group-inc-type').classList.add('hidden'); document.getElementById('group-inc-name').classList.remove('hidden'); }
             
             if (id) {
-                const list = isActive ? state.activeIncomes : state.passiveIncomes;
-                const item = list.find(i => i.id === id);
+                const item = (isActive ? state.activeIncomes : state.passiveIncomes).find(i => i.id === id);
                 if (item) {
-                    if (isActive) document.getElementById('input-inc-type').value = item.name;
-                    else document.getElementById('input-inc-name').value = item.name;
+                    isActive ? document.getElementById('input-inc-type').value = item.name : document.getElementById('input-inc-name').value = item.name;
                     document.getElementById('input-inc-date').value = item.date || getTodayStr();
                     document.getElementById('input-inc-freq').value = item.freq;
                     document.getElementById('input-inc-amount').value = item.amount;
                     document.getElementById('input-inc-remark').value = item.remark || '';
                 }
             } else {
-                if (isActive) document.getElementById('input-inc-type').value = '固定薪資';
-                else document.getElementById('input-inc-name').value = '';
+                isActive ? document.getElementById('input-inc-type').value = '固定薪資' : document.getElementById('input-inc-name').value = '';
                 document.getElementById('input-inc-date').value = getTodayStr();
                 document.getElementById('input-inc-freq').value = '月';
                 document.getElementById('input-inc-amount').value = '';
@@ -1033,82 +1455,55 @@
             }
             showModal('income');
         };
-
         window.saveIncome = async () => {
             const cat = document.getElementById('input-inc-cat').value;
             const id = document.getElementById('input-inc-id').value; 
-            const date = document.getElementById('input-inc-date').value || getTodayStr();
-            const freq = document.getElementById('input-inc-freq').value;
-            const amountInput = document.getElementById('input-inc-amount');
-            const amount = Number(amountInput.value);
-            const remark = document.getElementById('input-inc-remark').value.trim();
-            
-            if (amount <= 0 || amountInput.value.trim() === '') { indicateError('input-inc-amount'); return; }
-
-            const name = cat === 'active' ? document.getElementById('input-inc-type').value : (document.getElementById('input-inc-name').value.trim() || "未命名投資");
+            const amtInput = document.getElementById('input-inc-amount');
+            const amount = Number(amtInput.value);
+            if (amount <= 0 || amtInput.value.trim() === '') { indicateError('input-inc-amount'); return; }
+            const name = cat === 'active' ? document.getElementById('input-inc-type').value : (document.getElementById('input-inc-name').value.trim() || "未命名");
+            const data = { id: id||generateId(), name, freq: document.getElementById('input-inc-freq').value, amount, date: document.getElementById('input-inc-date').value||getTodayStr(), remark: document.getElementById('input-inc-remark').value.trim() };
             const targetList = cat === 'active' ? state.activeIncomes : state.passiveIncomes;
-
-            if (id) {
-                const index = targetList.findIndex(i => i.id === id);
-                if (index !== -1) targetList[index] = { ...targetList[index], name, freq, amount, date, remark };
-            } else {
-                targetList.push({ id: generateId(), name, freq, amount, date, remark });
-            }
-
-            markModified(); renderAll(); window.closeModal('income'); await syncData(); 
+            if (id) targetList[targetList.findIndex(i => i.id === id)] = data;
+            else targetList.push(data);
+            markModified(); window.renderAll(); window.closeModal('income'); await syncData(); 
         };
-
         window.deleteIncome = async (id, cat) => {
             if (cat === 'active') state.activeIncomes = state.activeIncomes.filter(i => i.id !== id);
             else state.passiveIncomes = state.passiveIncomes.filter(i => i.id !== id);
-            markModified(); renderAll(); await syncData();
+            markModified(); window.renderAll(); await syncData();
         };
 
-        // --- 歷史成長紀錄編輯 ---
         window.openHistoryModal = (id = null) => {
             document.getElementById('input-hist-id').value = id || ''; 
             if (id) {
                 const item = state.history.find(i => i.id === id);
-                if (item) {
-                    document.getElementById('input-hist-date').value = item.date;
-                    document.getElementById('input-hist-amt').value = item.total;
-                }
+                if (item) { document.getElementById('input-hist-date').value = item.date; document.getElementById('input-hist-amt').value = item.total; }
             } else {
-                document.getElementById('input-hist-date').value = getTodayStr();
-                document.getElementById('input-hist-amt').value = calculateTotalAssets();
+                document.getElementById('input-hist-date').value = getTodayStr(); document.getElementById('input-hist-amt').value = calculateTotalAssets();
             }
             showModal('history');
         };
-
         window.saveHistory = async () => {
             const id = document.getElementById('input-hist-id').value; 
             const date = document.getElementById('input-hist-date').value || getTodayStr();
             const amtInput = document.getElementById('input-hist-amt');
             const total = Number(amtInput.value);
-            
             if (total < 0 || amtInput.value.trim() === '') { indicateError('input-hist-amt'); return; }
-
             const existingIndex = state.history.findIndex(h => h.date === date && h.id !== id);
             if (existingIndex !== -1) {
-                alert("該日期已有紀錄，已為您覆蓋更新！");
                 state.history[existingIndex].total = total;
                 if(id) state.history = state.history.filter(h => h.id !== id);
             } else {
-                if (id) {
-                    const idx = state.history.findIndex(i => i.id === id);
-                    if (idx !== -1) state.history[idx] = { id, date, total };
-                } else {
-                    state.history.push({ id: generateId(), date, total });
-                }
+                if (id) state.history[state.history.findIndex(i => i.id === id)] = { id, date, total };
+                else state.history.push({ id: generateId(), date, total });
             }
-            
             state.history.sort((a, b) => new Date(a.date) - new Date(b.date));
-            markModified(); renderAll(); window.closeModal('history'); await syncData();
+            markModified(); window.renderAll(); window.closeModal('history'); await syncData();
         };
-
         window.deleteHistory = async (id) => {
             state.history = state.history.filter(i => i.id !== id);
-            markModified(); renderAll(); await syncData();
+            markModified(); window.renderAll(); await syncData();
         };
 
         window.onload = initApp;
