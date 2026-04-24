@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LuminAsset</title>
     
-    <!-- iOS 桌面 App 支援設定 -->
+    <!-- iOS 桌面 App 支援設定 (直接讀取 GitHub 上的 icon.png) -->
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
     <meta name="apple-mobile-web-app-title" content="LuminAsset">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -14,37 +16,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <!-- 動態生成並注入手機桌面圖示 (無需外部圖片檔) -->
-    <script>
-        (function() {
-            // 圖示的向量原始碼 (無灰莫蘭迪錢幣版)
-            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" fill="#FFFDF9" /><circle cx="150" cy="150" r="180" fill="#BCE3DF" opacity="0.4" /><circle cx="400" cy="380" r="200" fill="#FAD8D3" opacity="0.4" /><g transform="translate(180, 220) rotate(-15) translate(-180, -220)"><rect x="50" y="130" width="260" height="170" rx="24" fill="#88C0BB" /><rect x="75" y="155" width="210" height="120" rx="12" fill="#BCE3DF" opacity="0.6" /><circle cx="180" cy="215" r="35" fill="#FFFDF9" opacity="0.5" /></g><circle cx="340" cy="340" r="110" fill="#C2A37D" /><circle cx="340" cy="325" r="110" fill="#D4B895" /><circle cx="340" cy="325" r="85" fill="#FFF8EE" /><text x="340" y="367" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="120" fill="#5E4B43" text-anchor="middle">$</text><path d="M 120 340 Q 140 340 140 320 Q 140 340 160 340 Q 140 340 140 360 Q 140 340 120 340 Z" fill="#E3A39A" /><path d="M 390 130 Q 410 130 410 110 Q 410 130 430 130 Q 410 130 410 150 Q 410 130 390 130 Z" fill="#E3A39A" /></svg>`;
-            
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                canvas.width = 512;
-                canvas.height = 512;
-                canvas.getContext('2d').drawImage(img, 0, 0, 512, 512);
-                const pngDataUrl = canvas.toDataURL('image/png');
-                
-                // 注入 iPhone 主畫面圖示
-                const appleIcon = document.createElement('link');
-                appleIcon.rel = 'apple-touch-icon';
-                appleIcon.href = pngDataUrl;
-                document.head.appendChild(appleIcon);
-                
-                // 注入網頁瀏覽器分頁圖示
-                const standardIcon = document.createElement('link');
-                standardIcon.rel = 'icon';
-                standardIcon.type = 'image/png';
-                standardIcon.href = pngDataUrl;
-                document.head.appendChild(standardIcon);
-            };
-            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-        })();
-    </script>
 
     <script>
         tailwind.config = {
@@ -136,12 +107,10 @@
             <div class="flex-1">
                 <!-- 第一個頁籤：資產總覽 -->
                 <div id="tab-assets" class="space-y-6 animate-fade-in">
-                    <!-- 總資產卡片 -->
                     <div class="bg-gradient-to-br from-warm-mint to-[#68A39E] rounded-3xl shadow-warm p-6 sm:p-7 text-white relative overflow-hidden">
                         <div class="absolute -bottom-2 -right-2 opacity-20 text-8xl"><i class="fa-solid fa-sack-dollar"></i></div>
                         <p class="text-white/80 text-xs sm:text-sm tracking-wide mb-1.5 font-medium relative z-10">目前的總資產 (TWD)</p>
                         <h2 id="display-total-assets" class="text-3xl sm:text-4xl font-bold tracking-tight relative z-10">$0</h2>
-                        
                         <div class="mt-8 flex h-2 rounded-full overflow-hidden bg-white/30 relative z-10">
                             <div id="bar-cash" class="bg-warm-latteLight h-full transition-all duration-700" style="width: 0%;"></div>
                             <div id="bar-stocks" class="bg-warm-peach h-full transition-all duration-700" style="width: 0%;"></div>
@@ -149,7 +118,6 @@
                         </div>
                     </div>
 
-                    <!-- 資產明細列表 -->
                     <div class="bg-white rounded-3xl shadow-warm border border-warm-border p-2">
                         <div class="flex items-center justify-between p-3 sm:p-4 border-b border-warm-border/60">
                             <div class="flex items-center gap-3">
@@ -179,7 +147,6 @@
                         </div>
                     </div>
 
-                    <!-- 其他投資 -->
                     <div>
                         <div class="flex justify-between items-end mb-3 sm:mb-4 px-1 mt-6 sm:mt-8">
                             <div class="flex items-center gap-2 sm:gap-3">
@@ -224,7 +191,6 @@
 
                     <style>.list-card { transition: all 0.2s ease; } .list-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(94, 75, 67, 0.05); }</style>
 
-                    <!-- 主動收入 -->
                     <div>
                         <div class="flex justify-between items-end mb-3 sm:mb-4 px-1">
                             <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide"><i class="fa-solid fa-briefcase text-warm-peach mr-1.5 sm:mr-2"></i>主動收入</h3>
@@ -234,7 +200,6 @@
                         <div id="list-active-income" class="space-y-2.5 sm:space-y-3"></div>
                     </div>
 
-                    <!-- 被動收入 -->
                     <div>
                         <div class="flex justify-between items-end mb-3 sm:mb-4 px-1 mt-6 sm:mt-8">
                             <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide"><i class="fa-solid fa-seedling text-warm-latte mr-1.5 sm:mr-2"></i>被動收入</h3>
@@ -247,7 +212,6 @@
 
                 <!-- 第三個頁籤：股票損益 -->
                 <div id="tab-stocks" class="space-y-6 hidden animate-fade-in">
-                    <!-- 統計儀表板 -->
                     <div class="bg-gradient-to-br from-warm-latte to-[#B89B77] rounded-3xl p-6 shadow-warm text-white relative overflow-hidden">
                         <i class="fa-solid fa-arrow-trend-up absolute -right-2 -bottom-2 text-7xl opacity-20"></i>
                         <div class="flex justify-between items-start mb-2 relative z-10">
@@ -264,25 +228,19 @@
                         </div>
                     </div>
 
-                    <!-- 篩選區塊 -->
                     <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border">
                         <div class="flex items-center gap-2 mb-3"><i class="fa-solid fa-filter text-warm-textLight text-xs"></i><span class="text-xs font-bold text-warm-textDark tracking-widest">進階篩選</span></div>
                         <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <select id="filter-stock-year" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint"><option value="all">所有年份</option></select>
-                            </div>
+                            <div><select id="filter-stock-year" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint"><option value="all">所有年份</option></select></div>
                             <div>
                                 <select id="filter-stock-type" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint">
                                     <option value="all">所有交易</option><option value="現賣">現賣</option><option value="當沖">當沖</option>
                                 </select>
                             </div>
-                            <div>
-                                <input type="text" id="filter-stock-name" oninput="window.renderStocksTab()" placeholder="輸入股名" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint placeholder:font-normal placeholder:text-warm-textLight/60">
-                            </div>
+                            <div><input type="text" id="filter-stock-name" oninput="window.renderStocksTab()" placeholder="輸入股名" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint placeholder:font-normal placeholder:text-warm-textLight/60"></div>
                         </div>
                     </div>
 
-                    <!-- 股票清單區塊 -->
                     <div id="list-stocks" class="space-y-3"></div>
                     <div id="empty-stocks" class="hidden text-center py-10 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
                         <i class="fa-solid fa-file-invoice-dollar text-3xl text-warm-textLight/30 mb-3"></i>
@@ -307,7 +265,6 @@
                         <div id="list-history" class="space-y-2"></div>
                     </div>
                 </div>
-
             </div>
 
             <!-- 全局最後修改時間註記 -->
@@ -317,7 +274,7 @@
 
         </main>
 
-        <!-- 模態框：系統設定 (包含備份還原) -->
+        <!-- 模態框：系統設定 -->
         <div id="modal-settings" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
                 <div class="flex justify-between items-center mb-6">
@@ -329,8 +286,8 @@
                         <h4 class="font-bold text-warm-textDark text-sm mb-2 flex items-center"><i class="fa-solid fa-database text-warm-latte mr-2"></i>資料備份與還原</h4>
                         <p class="text-[11px] text-warm-textLight mb-5 tracking-widest leading-relaxed">可將所有紀錄下載為 JSON 檔案妥善保存，或在更換裝置時一鍵匯入還原所有資料。</p>
                         <div class="flex gap-3">
-                            <button onclick="window.exportData()" class="flex-1 py-3 rounded-xl text-xs font-bold tracking-wider text-warm-textDark bg-white border border-warm-border hover:bg-[#FDF0DE] transition shadow-sm flex justify-center items-center"><i class="fa-solid fa-download mr-1.5 text-warm-mint"></i>匯出備份</button>
-                            <button onclick="document.getElementById('input-import-json').click()" class="flex-1 py-3 rounded-xl text-xs font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30 flex justify-center items-center"><i class="fa-solid fa-upload mr-1.5"></i>匯入還原</button>
+                            <button onclick="window.exportData()" class="flex-1 py-3 rounded-xl text-xs font-bold tracking-wider text-warm-textDark bg-white border border-warm-border hover:bg-[#FDF0DE] transition shadow-sm flex justify-center items-center"><i class="fa-solid fa-download mr-1.5 text-warm-mint"></i>匯出</button>
+                            <button onclick="document.getElementById('input-import-json').click()" class="flex-1 py-3 rounded-xl text-xs font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30 flex justify-center items-center"><i class="fa-solid fa-upload mr-1.5"></i>匯入</button>
                             <input type="file" id="input-import-json" accept=".json" class="hidden" onchange="window.importData(event)">
                         </div>
                     </div>
@@ -465,7 +422,7 @@
             </div>
         </div>
 
-        <!-- 模態框：股票損益 (智慧推算版) -->
+        <!-- 模態框：股票損益 -->
         <div id="modal-stock" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
                 <h3 id="stock-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-5 text-center tracking-wide"><i class="fa-solid fa-money-bill-trend-up mr-2 text-warm-latte"></i>紀錄股票損益</h3>
@@ -505,24 +462,15 @@
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="block text-[10px] font-bold text-warm-textLight mb-1 text-center">總成本</label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span>
-                                    <input type="number" id="input-stock-cost" oninput="window.handleStockCalc('cost')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入">
-                                </div>
+                                <div class="relative"><span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span><input type="number" id="input-stock-cost" oninput="window.handleStockCalc('cost')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入"></div>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-warm-textLight mb-1 text-center">總收入</label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span>
-                                    <input type="number" id="input-stock-income" oninput="window.handleStockCalc('income')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入">
-                                </div>
+                                <div class="relative"><span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span><input type="number" id="input-stock-income" oninput="window.handleStockCalc('income')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入"></div>
                             </div>
                             <div>
                                 <label class="block text-[10px] font-bold text-warm-textLight mb-1 text-center">損益</label>
-                                <div class="relative">
-                                    <span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span>
-                                    <input type="number" id="input-stock-profit" oninput="window.handleStockCalc('profit')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入">
-                                </div>
+                                <div class="relative"><span class="absolute left-2 top-2.5 text-warm-textLight text-[10px] font-bold">$</span><input type="number" id="input-stock-profit" oninput="window.handleStockCalc('profit')" class="w-full bg-white border border-warm-border text-warm-textDark rounded-lg pl-4 pr-1 py-2 focus:outline-none focus:ring-2 focus:ring-warm-latteLight transition-all text-xs font-bold text-center" placeholder="輸入"></div>
                             </div>
                         </div>
                     </div>
@@ -562,23 +510,17 @@
         import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const getTodayStr = () => {
-            const d = new Date();
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        };
+        const getTodayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
         const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 5);
 
         let state = { assets: { cash: 0, stocks: 0 }, otherAssets: [], activeIncomes: [], passiveIncomes: [], stockRecords: [], history: [], lastModified: null };
         let auth, db, dbRef, currentUser = null;
-        let growthChartInstance = null;
-        let stockEditHistory = [];
+        let growthChartInstance = null; let stockEditHistory = [];
 
-        // 1. 本地備份引擎 (IndexedDB)
         const getLocalDB = () => new Promise((resolve, reject) => {
             const request = indexedDB.open('LuminAssetDB', 5); 
             request.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains('store')) db.createObjectStore('store'); };
-            request.onsuccess = (e) => resolve(e.target.result);
-            request.onerror = (e) => reject(e.target.error);
+            request.onsuccess = (e) => resolve(e.target.result); request.onerror = (e) => reject(e.target.error);
         });
 
         const saveToLocal = async (data) => {
@@ -591,19 +533,15 @@
             catch(e) { return null; }
         };
 
-        // 2. 資料匯入匯出與遷移邏輯 (JSON Backup)
         window.openSettingsModal = () => showModal('settings');
         window.exportData = () => {
             const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            const d = new Date();
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); const d = new Date();
             a.href = url; a.download = `AssetManagement_Backup_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.json`;
             a.click(); URL.revokeObjectURL(url);
         };
         window.importData = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
+            const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = async (e) => {
                 try {
@@ -613,8 +551,7 @@
                     } else alert("檔案格式不正確！");
                 } catch (error) { alert("讀取檔案失敗！"); }
                 event.target.value = ''; 
-            };
-            reader.readAsText(file);
+            }; reader.readAsText(file);
         };
 
         const calculateTotalAssets = () => (state.assets.cash || 0) + (state.assets.stocks || 0) + state.otherAssets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -644,17 +581,14 @@
             if (state.history.length === 0 && calculateTotalAssets() > 0) updateAssetHistory();
         };
 
-        // 3. 雲端初始化
         const initApp = async () => {
             setStatus("讀取中");
             const configString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
             const localData = await loadFromLocal();
             if (localData) { migrateData(localData); renderAll(); }
-
             if (configString) {
                 try {
-                    const firebaseConfig = JSON.parse(configString);
-                    const app = initializeApp(firebaseConfig);
+                    const firebaseConfig = JSON.parse(configString); const app = initializeApp(firebaseConfig);
                     auth = getAuth(app); db = getFirestore(app);
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token); else await signInAnonymously(auth);
                     onAuthStateChanged(auth, (user) => {
@@ -687,32 +621,21 @@
         const formatMoney = (amount) => Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
         const formatPct = (num) => (num > 0 ? '+' : '') + Number(num).toFixed(2) + '%';
 
-        // 4. 畫面渲染
         window.renderAll = () => { renderAssets(); renderIncomes(); renderStocksTab(); renderGrowthTab(); document.getElementById('last-modified-footer').innerHTML = `<i class="fa-regular fa-clock mr-1.5"></i>最後修改：${formatLastModified(state.lastModified)}`; };
 
         const renderAssets = () => {
             const cash = state.assets.cash || 0; const stocks = state.assets.stocks || 0;
             const othersTotal = state.otherAssets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
             const total = cash + stocks + othersTotal;
-            
             document.getElementById('display-total-assets').innerText = '$' + formatMoney(total);
             document.getElementById('display-cash-amt').innerText = '$' + formatMoney(cash);
             document.getElementById('display-stocks-amt').innerText = '$' + formatMoney(stocks);
-            
             const sumGroup = document.getElementById('others-summary-group');
             if(othersTotal > 0) { sumGroup.classList.remove('hidden'); document.getElementById('display-others-total').innerText = '$' + formatMoney(othersTotal); } else sumGroup.classList.add('hidden');
-
             const safePct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-            document.getElementById('display-cash-pct').innerText = safePct(cash) + '%';
-            document.getElementById('display-stocks-pct').innerText = safePct(stocks) + '%';
-            document.getElementById('bar-cash').style.width = safePct(cash) + '%';
-            document.getElementById('bar-stocks').style.width = safePct(stocks) + '%';
-            document.getElementById('bar-others').style.width = safePct(othersTotal) + '%';
-
-            const otherAssetsContainer = document.getElementById('list-other-assets');
-            const emptyOther = document.getElementById('empty-other-assets');
-            otherAssetsContainer.innerHTML = '';
-            
+            document.getElementById('display-cash-pct').innerText = safePct(cash) + '%'; document.getElementById('display-stocks-pct').innerText = safePct(stocks) + '%';
+            document.getElementById('bar-cash').style.width = safePct(cash) + '%'; document.getElementById('bar-stocks').style.width = safePct(stocks) + '%'; document.getElementById('bar-others').style.width = safePct(othersTotal) + '%';
+            const otherAssetsContainer = document.getElementById('list-other-assets'); const emptyOther = document.getElementById('empty-other-assets'); otherAssetsContainer.innerHTML = '';
             if (state.otherAssets.length === 0) emptyOther.classList.remove('hidden');
             else {
                 emptyOther.classList.add('hidden');
@@ -729,8 +652,8 @@
                             <div class="flex items-center gap-3">
                                 <span class="font-bold text-warm-textDark mr-1 text-lg">$${formatMoney(item.amount)}</span>
                                 <div class="flex items-center gap-1.5 border-l border-warm-border pl-3">
-                                    <button onclick="window.openOtherAssetModal('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-latte hover:bg-warm-latteLight/30 transition flex justify-center items-center"><i class="fa-solid fa-pen text-xs"></i></button>
-                                    <button onclick="window.deleteOtherAsset('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                                    <button onclick="window.openOtherAssetModal('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-latte hover:bg-warm-latteLight/30 transition flex justify-center items-center" title="編輯"><i class="fa-solid fa-pen text-xs"></i></button>
+                                    <button onclick="window.deleteOtherAsset('${item.id}')" class="w-8 h-8 rounded-full text-warm-textLight hover:text-warm-peach hover:bg-warm-peachLight/30 transition flex justify-center items-center" title="刪除"><i class="fa-solid fa-trash-can text-xs"></i></button>
                                 </div>
                             </div>
                         </div>`;
@@ -793,13 +716,8 @@
         };
 
         window.renderStocksTab = () => {
-            const yearFilterEl = document.getElementById('filter-stock-year');
-            const typeFilter = document.getElementById('filter-stock-type').value;
-            const nameFilter = document.getElementById('filter-stock-name').value.trim().toLowerCase();
-
-            const years = new Set(state.stockRecords.map(s => s.date.substring(0, 4)));
-            const currentYearValue = yearFilterEl.value;
-            yearFilterEl.innerHTML = '<option value="all">所有年份</option>';
+            const yearFilterEl = document.getElementById('filter-stock-year'); const typeFilter = document.getElementById('filter-stock-type').value; const nameFilter = document.getElementById('filter-stock-name').value.trim().toLowerCase();
+            const years = new Set(state.stockRecords.map(s => s.date.substring(0, 4))); const currentYearValue = yearFilterEl.value; yearFilterEl.innerHTML = '<option value="all">所有年份</option>';
             Array.from(years).sort().reverse().forEach(y => { yearFilterEl.innerHTML += `<option value="${y}">${y}年</option>`; });
             if(years.has(currentYearValue) || currentYearValue === 'all') yearFilterEl.value = currentYearValue;
             const yearFilter = yearFilterEl.value;
@@ -809,10 +727,7 @@
             state.stockRecords.forEach(s => { const profit = s.income - s.cost; if(s.date.startsWith(currentYearStr)) yearTotal += profit; if(s.date.startsWith(currentMonthStr)) monthTotal += profit; });
 
             let filtered = state.stockRecords.filter(s => {
-                if(yearFilter !== 'all' && !s.date.startsWith(yearFilter)) return false;
-                if(typeFilter !== 'all' && s.type !== typeFilter) return false;
-                if(nameFilter && !s.name.toLowerCase().includes(nameFilter)) return false;
-                return true;
+                if(yearFilter !== 'all' && !s.date.startsWith(yearFilter)) return false; if(typeFilter !== 'all' && s.type !== typeFilter) return false; if(nameFilter && !s.name.toLowerCase().includes(nameFilter)) return false; return true;
             });
 
             let filterTotalProfit = 0; filtered.forEach(s => filterTotalProfit += (s.income - s.cost));
@@ -820,21 +735,16 @@
             const totalEl = document.getElementById('display-stock-filter-total');
             totalEl.innerText = (filterTotalProfit >= 0 ? '+$' : '-$') + formatMoney(Math.abs(filterTotalProfit));
             totalEl.className = `text-4xl font-bold tracking-tight mb-5 relative z-10 ${filterTotalProfit >= 0 ? 'text-white' : 'text-white/80'}`;
-
             document.getElementById('display-stock-month-total').innerText = (monthTotal>=0?'+$':'-$') + formatMoney(Math.abs(monthTotal));
             document.getElementById('display-stock-year-total').innerText = (yearTotal>=0?'+$':'-$') + formatMoney(Math.abs(yearTotal));
 
             const container = document.getElementById('list-stocks'); const emptyState = document.getElementById('empty-stocks'); container.innerHTML = '';
-
             if (filtered.length === 0) emptyState.classList.remove('hidden');
             else {
                 emptyState.classList.add('hidden');
                 filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(s => {
-                    const profit = s.income - s.cost;
-                    const returnRate = s.cost > 0 ? (profit / s.cost * 100) : 0;
-                    const pClass = profit >= 0 ? 'text-warm-stockGain' : 'text-warm-stockLoss';
-                    const bgBadge = profit >= 0 ? 'bg-warm-stockGain/10 border-warm-stockGain/20' : 'bg-warm-stockLoss/10 border-warm-stockLoss/20';
-
+                    const profit = s.income - s.cost; const returnRate = s.cost > 0 ? (profit / s.cost * 100) : 0;
+                    const pClass = profit >= 0 ? 'text-warm-stockGain' : 'text-warm-stockLoss'; const bgBadge = profit >= 0 ? 'bg-warm-stockGain/10 border-warm-stockGain/20' : 'bg-warm-stockLoss/10 border-warm-stockLoss/20';
                     container.innerHTML += `
                         <div class="list-card bg-white rounded-2xl p-4 border border-warm-border flex flex-col shadow-sm">
                             <div class="flex justify-between items-start mb-3 pb-3 border-b border-warm-border/50">
@@ -899,7 +809,6 @@
             }
 
             if (growthChartInstance) growthChartInstance.destroy();
-
             let labels = state.history.map(h => h.date.substring(5)); let dataPoints = state.history.map(h => h.total);
             if (labels.length === 0) { labels = ['今日']; dataPoints = [calculateTotalAssets()]; } 
             else if (labels.length === 1) { labels = ['起始', labels[0]]; dataPoints = [0, dataPoints[0]]; }
@@ -924,7 +833,7 @@
             });
         };
 
-        // 5. UI 互動與儲存
+        // 5. UI 互動
         window.switchTab = (tab) => {
             ['assets', 'income', 'stocks', 'growth'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
