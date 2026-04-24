@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LuminAsset</title>
+    <title>Asset management</title>
     
     <!-- iOS 桌面 App 支援設定 -->
-    <link rel="apple-touch-icon" href="icon.png">
-    <link rel="icon" type="image/png" href="icon.png">
-    <meta name="apple-mobile-web-app-title" content="LuminAsset">
+    <meta name="apple-mobile-web-app-title" content="Asset management">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
@@ -70,22 +68,22 @@
     <!-- 主容器 -->
     <div class="max-w-md mx-auto min-h-screen bg-warm-bg relative shadow-xl overflow-hidden flex flex-col border-x border-warm-border">
         
-        <!-- 頂部標題列 -->
-        <header class="bg-warm-mint text-white px-6 py-4 z-20 flex justify-between items-center relative shadow-sm">
-            <h1 class="text-xl font-bold tracking-wide flex items-center">
-                <i class="fa-solid fa-wallet mr-2.5 text-white/90 text-2xl"></i>
-                LuminAsset
+        <!-- 頂部標題列 (修正字體大小與不換行設定) -->
+        <header class="bg-warm-mint text-white px-4 sm:px-6 py-3 sm:py-4 z-20 flex justify-between items-center relative shadow-sm">
+            <h1 class="text-base sm:text-lg font-bold tracking-wide flex items-center whitespace-nowrap truncate mr-2">
+                <i class="fa-solid fa-wallet mr-2 text-white/90 text-lg sm:text-xl"></i>
+                Asset management
             </h1>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                 <!-- 隱藏金額按鈕 -->
                 <button onclick="window.toggleVisibility()" class="text-white/90 hover:text-white transition" title="隱藏/顯示金額">
-                    <i id="visibility-icon" class="fa-solid fa-eye text-lg"></i>
+                    <i id="visibility-icon" class="fa-solid fa-eye text-base sm:text-lg"></i>
                 </button>
-                <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300">
-                    <i class="fa-solid fa-spinner fa-spin mr-1"></i>讀取中
+                <div id="sync-status" class="text-[10px] sm:text-xs font-medium bg-white/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full tracking-wide transition-colors duration-300 flex items-center whitespace-nowrap">
+                    <i class="fa-solid fa-spinner fa-spin mr-1"></i><span class="hidden sm:inline">讀取中</span>
                 </div>
                 <button onclick="window.openSettingsModal()" class="text-white/90 hover:text-white transition">
-                    <i class="fa-solid fa-gear text-lg"></i>
+                    <i class="fa-solid fa-gear text-base sm:text-lg"></i>
                 </button>
             </div>
         </header>
@@ -196,6 +194,7 @@
 
                     <style>.list-card { transition: all 0.2s ease; } .list-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(94, 75, 67, 0.05); }</style>
 
+                    <!-- 主動收入 -->
                     <div>
                         <div class="flex justify-between items-end mb-3 sm:mb-4 px-1">
                             <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide"><i class="fa-solid fa-briefcase text-warm-peach mr-1.5 sm:mr-2"></i>主動收入</h3>
@@ -205,6 +204,7 @@
                         <div id="list-active-income" class="space-y-2.5 sm:space-y-3"></div>
                     </div>
 
+                    <!-- 被動收入 -->
                     <div>
                         <div class="flex justify-between items-end mb-3 sm:mb-4 px-1 mt-6 sm:mt-8">
                             <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide"><i class="fa-solid fa-seedling text-warm-latte mr-1.5 sm:mr-2"></i>被動收入</h3>
@@ -217,6 +217,7 @@
 
                 <!-- 第三個頁籤：股票損益 -->
                 <div id="tab-stocks" class="space-y-6 hidden animate-fade-in">
+                    <!-- 統計儀表板 -->
                     <div class="bg-gradient-to-br from-warm-latte to-[#B89B77] rounded-3xl p-6 shadow-warm text-white relative overflow-hidden">
                         <i class="fa-solid fa-arrow-trend-up absolute -right-2 -bottom-2 text-7xl opacity-20"></i>
                         <div class="flex justify-between items-start mb-2 relative z-10">
@@ -233,6 +234,7 @@
                         </div>
                     </div>
 
+                    <!-- 篩選區塊 -->
                     <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border">
                         <div class="flex items-center gap-2 mb-3"><i class="fa-solid fa-filter text-warm-textLight text-xs"></i><span class="text-xs font-bold text-warm-textDark tracking-widest">進階篩選</span></div>
                         <div class="grid grid-cols-3 gap-2">
@@ -250,6 +252,7 @@
                         </div>
                     </div>
 
+                    <!-- 股票清單區塊 -->
                     <div id="list-stocks" class="space-y-3"></div>
                     <div id="empty-stocks" class="hidden text-center py-10 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
                         <i class="fa-solid fa-file-invoice-dollar text-3xl text-warm-textLight/30 mb-3"></i>
@@ -637,8 +640,14 @@
 
         const setStatus = (msg) => {
             const el = document.getElementById('sync-status');
-            el.innerHTML = msg.includes('同步') || msg.includes('存檔') || msg.includes('備份') ? `<i class="fa-solid fa-cloud-check mr-1"></i> ${msg}` : `<i class="fa-solid fa-cloud mr-1"></i> ${msg}`;
-            if(msg === '讀取中' || msg === '儲存中') el.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> ${msg}`;
+            el.querySelector('span').innerText = msg;
+            if (msg.includes('同步') || msg.includes('存檔') || msg.includes('備份')) {
+                el.querySelector('i').className = "fa-solid fa-cloud-check mr-1";
+            } else if (msg === '讀取中' || msg === '儲存中') {
+                el.querySelector('i').className = "fa-solid fa-circle-notch fa-spin mr-1";
+            } else {
+                el.querySelector('i').className = "fa-solid fa-cloud mr-1";
+            }
         };
 
         // --- 全域數字格式化 (含遮蔽邏輯) ---
@@ -785,7 +794,6 @@
             const totalEl = document.getElementById('display-stock-filter-total');
             totalEl.innerText = formatProfitVal(filterTotalProfit);
             totalEl.className = `text-4xl font-bold tracking-tight mb-5 relative z-10 ${filterTotalProfit >= 0 ? 'text-white' : 'text-white/80'}`;
-
             document.getElementById('display-stock-month-total').innerText = formatProfitVal(monthTotal);
             document.getElementById('display-stock-year-total').innerText = formatProfitVal(yearTotal);
 
