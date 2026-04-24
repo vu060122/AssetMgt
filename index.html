@@ -3,20 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>財Asset Management</title>
+    <title>Asset Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- 加入 iOS/Android 桌面圖示支援 -->
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-title" content="LuminAsset">
-    <meta name="apple-mobile-web-app-capable" content="yes">
     
-    <!-- 引入 Chart.js 用於繪製圖表 -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- 引入 SheetJS 用於讀取 Excel/CSV -->
+    <!-- SheetJS (Excel匯入) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    
+
     <script>
         tailwind.config = {
             theme: {
@@ -79,14 +74,12 @@
         }
 
         /* 溫和的咖啡色系陰影 */
-        .shadow-warm {
-            box-shadow: 0 4px 15px -3px rgba(94, 75, 67, 0.06);
-        }
+        .shadow-warm { box-shadow: 0 4px 15px -3px rgba(94, 75, 67, 0.06); }
         
         /* 隱藏捲動軸但保留功能 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
+
         /* 美化上傳檔案的 input */
         input[type="file"]::file-selector-button {
             margin-right: 10px;
@@ -100,9 +93,7 @@
             font-weight: bold;
             font-size: 12px;
         }
-        input[type="file"]::file-selector-button:hover {
-            background: #C2A37D;
-        }
+        input[type="file"]::file-selector-button:hover { background: #C2A37D; }
     </style>
 </head>
 <body class="bg-warm-bg text-warm-textDark font-sans antialiased selection:bg-warm-mintLight selection:text-warm-textDark">
@@ -116,12 +107,18 @@
                 <i class="fa-solid fa-wallet mr-2.5 text-white/90 text-2xl"></i>
                 Asset Management
             </h1>
-            <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300">
-                <i class="fa-solid fa-spinner fa-spin mr-1"></i>讀取中
+            <div class="flex items-center gap-3">
+                <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300">
+                    <i class="fa-solid fa-spinner fa-spin mr-1"></i>讀取中
+                </div>
+                <!-- 新增：設定按鈕 -->
+                <button onclick="window.openSettingsModal()" class="text-white/90 hover:text-white transition">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
             </div>
         </header>
 
-        <!-- 頂部導航列 -->
+        <!-- 頂部導航列 (頁籤擴充為4格) -->
         <nav class="bg-warm-card flex text-[11px] sm:text-xs font-bold z-10 relative shadow-sm border-b border-warm-border overflow-x-auto no-scrollbar">
             <button onclick="window.switchTab('assets')" id="nav-assets" class="flex-1 min-w-[70px] py-3.5 flex flex-col sm:flex-row justify-center items-center gap-1 sm:gap-1.5 tab-active transition-colors duration-200">
                 <i class="fa-solid fa-chart-pie text-sm sm:text-lg mb-0.5"></i><span>資產總覽</span>
@@ -137,8 +134,9 @@
             </button>
         </nav>
 
-        <!-- 內容區域 -->
+        <!-- 內容區域 (可捲動) -->
         <main class="flex-1 overflow-y-auto relative p-4 sm:p-5 flex flex-col">
+            
             <div class="flex-1">
                 
                 <!-- 第一個頁籤：資產總覽 -->
@@ -272,7 +270,7 @@
                         </div>
                         <div id="empty-active-income" class="hidden text-center py-6 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
                             <i class="fa-solid fa-folder-open text-2xl text-warm-textLight/30 mb-2"></i>
-                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無主動收入</p>
+                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無主動收入紀錄</p>
                         </div>
                         <div id="list-active-income" class="space-y-2.5 sm:space-y-3"></div>
                     </div>
@@ -289,7 +287,7 @@
                         </div>
                         <div id="empty-passive-income" class="hidden text-center py-6 bg-warm-card rounded-3xl border border-dashed border-warm-border shadow-sm">
                             <i class="fa-solid fa-seedling text-2xl text-warm-textLight/30 mb-2"></i>
-                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無被動收入</p>
+                            <p class="text-warm-textLight text-xs font-bold tracking-widest">尚無被動收入紀錄</p>
                         </div>
                         <div id="list-passive-income" class="space-y-2.5 sm:space-y-3"></div>
                     </div>
@@ -397,7 +395,33 @@
 
         </main>
 
-        <!-- [保留] 模態框：編輯基礎資產 -->
+        <!-- 模態框：系統設定 (包含備份還原) -->
+        <div id="modal-settings" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
+            <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-lg sm:text-xl font-bold text-warm-textDark tracking-wide">
+                        <i class="fa-solid fa-gear mr-2 text-warm-mint"></i>系統設定
+                    </h3>
+                    <button onclick="window.closeModal('settings')" class="text-warm-textLight hover:text-warm-textDark transition">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div class="p-4 sm:p-5 bg-warm-bg rounded-2xl border border-warm-border shadow-sm">
+                        <h4 class="font-bold text-warm-textDark text-sm mb-2 flex items-center"><i class="fa-solid fa-database text-warm-latte mr-2"></i>資料備份與還原</h4>
+                        <p class="text-[11px] text-warm-textLight mb-5 tracking-widest leading-relaxed">可將所有紀錄下載為 JSON 檔案妥善保存，或在更換裝置時一鍵匯入還原所有資料。</p>
+                        <div class="flex gap-3">
+                            <button onclick="window.exportData()" class="flex-1 py-3 rounded-xl text-xs font-bold tracking-wider text-warm-textDark bg-white border border-warm-border hover:bg-[#FDF0DE] transition shadow-sm flex justify-center items-center"><i class="fa-solid fa-download mr-1.5 text-warm-mint"></i>匯出備份</button>
+                            <button onclick="document.getElementById('input-import-json').click()" class="flex-1 py-3 rounded-xl text-xs font-bold tracking-wider text-white bg-warm-mint hover:bg-[#68A39E] transition shadow-md shadow-warm-mint/30 flex justify-center items-center"><i class="fa-solid fa-upload mr-1.5"></i>匯入還原</button>
+                            <input type="file" id="input-import-json" accept=".json" class="hidden" onchange="window.importData(event)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 模態框：編輯基礎資產 -->
         <div id="modal-assets" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
                 <h3 id="asset-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
@@ -420,7 +444,7 @@
             </div>
         </div>
 
-        <!-- [保留] 模態框：其他投資 -->
+        <!-- 模態框：其他投資 -->
         <div id="modal-other-asset" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
                 <h3 id="other-asset-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
@@ -455,7 +479,7 @@
             </div>
         </div>
 
-        <!-- [保留] 模態框：收入 -->
+        <!-- 模態框：收入 -->
         <div id="modal-income" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
                 <h3 id="income-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
@@ -508,7 +532,7 @@
             </div>
         </div>
 
-        <!-- [保留] 模態框：歷史成長紀錄 -->
+        <!-- 模態框：歷史成長紀錄 -->
         <div id="modal-history" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
                 <h3 class="text-lg sm:text-xl font-bold text-warm-textDark mb-6 text-center tracking-wide">
@@ -613,7 +637,7 @@
             </div>
         </div>
 
-        <!-- [全新] 模態框：匯入 Excel/CSV -->
+        <!-- 模態框：匯入 Excel/CSV -->
         <div id="modal-stock-import" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border">
                 <h3 class="text-lg sm:text-xl font-bold text-warm-textDark mb-4 text-center tracking-wide">
@@ -702,8 +726,52 @@
         };
 
         // ----------------------------------------------------
-        // 2. 資料遷移與處理邏輯
+        // 2. 資料匯入匯出與遷移邏輯 (JSON Backup)
         // ----------------------------------------------------
+        window.openSettingsModal = () => {
+            showModal('settings');
+        };
+
+        window.exportData = () => {
+            const dataStr = JSON.stringify(state, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const d = new Date();
+            const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            a.href = url;
+            a.download = `AssetManagement_Backup_${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.importData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedState = JSON.parse(e.target.result);
+                    if (importedState && importedState.assets) {
+                        if(confirm("確定要匯入並覆寫目前的資料嗎？")) {
+                            migrateData(importedState);
+                            markModified();
+                            window.renderAll();
+                            await syncData(false);
+                            window.closeModal('settings');
+                            alert("資料匯入成功！");
+                        }
+                    } else {
+                        alert("檔案格式不正確！請選擇由本系統匯出的 JSON 檔。");
+                    }
+                } catch (error) {
+                    alert("讀取檔案失敗！");
+                }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        };
+
         const calculateTotalAssets = () => {
             const cash = state.assets.cash || 0;
             const stocks = state.assets.stocks || 0;
@@ -781,9 +849,9 @@
                     });
                 } catch (e) {
                     console.error("雲端初始化失敗:", e);
-                    setStatus("本地存檔模式");
+                    setStatus("本地存檔");
                 }
-            } else { setStatus("本地存檔模式"); }
+            } else { setStatus("本地存檔"); }
         };
 
         const listenToData = () => {
@@ -797,21 +865,21 @@
                 } else { await syncData(true); }
             }, (error) => {
                 console.error("雲端讀取錯誤:", error);
-                setStatus("本地存檔模式");
+                setStatus("本地存檔");
             });
         };
 
         const syncData = async (isInit = false) => {
             await saveToLocal(state);
             if (!currentUser || !dbRef) {
-                if (!isInit) { setStatus("已存檔(本地)"); setTimeout(() => setStatus("本地存檔模式"), 2000); }
+                if (!isInit) { setStatus("已存檔"); setTimeout(() => setStatus("本地存檔"), 2000); }
                 return;
             }
             try {
                 if(!isInit) setStatus("儲存中");
                 await setDoc(dbRef, state);
-                if(!isInit) { setStatus("已雲端備份"); setTimeout(() => setStatus("已同步"), 2000); }
-            } catch (e) { setStatus("已存檔(本地)"); }
+                if(!isInit) { setStatus("已備份"); setTimeout(() => setStatus("已同步"), 2000); }
+            } catch (e) { setStatus("已存檔"); }
         };
 
         const setStatus = (msg) => {
@@ -1187,10 +1255,7 @@
 
         window.processExcelImport = async () => {
             const fileInput = document.getElementById('input-excel-file');
-            if (!fileInput.files.length) {
-                alert('請先選擇 Excel 檔案！');
-                return;
-            }
+            if (!fileInput.files.length) { alert('請先選擇 Excel 檔案！'); return; }
             
             const file = fileInput.files[0];
             const reader = new FileReader();
@@ -1201,7 +1266,6 @@
                     const workbook = XLSX.read(data, {type: 'array'});
                     const sheetName = workbook.SheetNames[0];
                     const sheet = workbook.Sheets[sheetName];
-                    // raw: false 會將日期等欄位格式化成肉眼看到的字串
                     const json = XLSX.utils.sheet_to_json(sheet, {raw: false});
                     
                     let importedCount = 0;
@@ -1215,42 +1279,27 @@
                         const costRaw = row['成本'] || row['總成本'] || '0';
                         const incomeRaw = row['收入'] || row['總收入'] || '0';
 
-                        if (!name || !dateRaw) return; // 略過無效行
+                        if (!name || !dateRaw) return;
 
-                        // 處理日期格式 (將 / 轉為 -)
                         let date = dateRaw.replace(/\//g, '-');
                         if (date.length > 10) date = date.substring(0, 10);
 
                         const parseNum = (str) => Number(String(str).replace(/,/g, '')) || 0;
 
                         state.stockRecords.push({
-                            id: generateId(),
-                            date: date,
-                            type: type === '當沖' ? '當沖' : '現賣', // 強制對齊系統的兩個類別
-                            name: name,
-                            price: parseNum(priceRaw),
-                            shares: parseNum(sharesRaw),
-                            cost: parseNum(costRaw),
-                            income: parseNum(incomeRaw)
+                            id: generateId(), date: date, type: type === '當沖' ? '當沖' : '現賣',
+                            name: name, price: parseNum(priceRaw), shares: parseNum(sharesRaw),
+                            cost: parseNum(costRaw), income: parseNum(incomeRaw)
                         });
                         importedCount++;
                     });
 
                     if (importedCount > 0) {
-                        markModified();
-                        window.renderAll();
-                        window.closeModal('stock-import');
-                        await syncData();
+                        markModified(); window.renderAll(); window.closeModal('stock-import'); await syncData();
                         alert(`成功匯入 ${importedCount} 筆資料！`);
-                    } else {
-                        alert('找不到符合格式的資料，請確認第一列欄位名稱是否包含：日期、商品、交易別、價格、股數、成本、收入。');
-                    }
-                } catch(error) {
-                    console.error(error);
-                    alert('讀取檔案失敗，請確定是有效的 .xlsx 或 .csv 檔案。');
-                }
+                    } else { alert('找不到符合格式的資料，請確認第一列欄位名稱是否包含：日期、商品、交易別、價格、股數、成本、收入。'); }
+                } catch(error) { alert('讀取檔案失敗，請確定是有效的 .xlsx 或 .csv 檔案。'); }
             };
-            
             reader.readAsArrayBuffer(file);
         };
 
@@ -1276,14 +1325,11 @@
             if (stockEditHistory.length === 2) {
                 const pair = stockEditHistory;
                 if (pair.includes('cost') && pair.includes('income') && hasCost && hasIncome) {
-                    profit = income - cost;
-                    profitEl.value = profit;
+                    profit = income - cost; profitEl.value = profit;
                 } else if (pair.includes('cost') && pair.includes('profit') && hasCost && hasProfit) {
-                    income = cost + profit;
-                    incomeEl.value = income;
+                    income = cost + profit; incomeEl.value = income;
                 } else if (pair.includes('income') && pair.includes('profit') && hasIncome && hasProfit) {
-                    cost = income - profit;
-                    costEl.value = cost; 
+                    cost = income - profit; costEl.value = cost; 
                 }
             }
 
@@ -1302,7 +1348,6 @@
         window.openStockModal = (id = null) => {
             document.getElementById('input-stock-id').value = id || ''; 
             const titleEl = document.getElementById('stock-modal-title');
-            
             stockEditHistory = [];
 
             if (id) {
@@ -1314,7 +1359,6 @@
                     document.getElementById('input-stock-name').value = item.name;
                     document.getElementById('input-stock-price').value = item.price || '';
                     document.getElementById('input-stock-shares').value = item.shares || '';
-                    
                     document.getElementById('input-stock-cost').value = item.cost;
                     document.getElementById('input-stock-income').value = item.income;
                     document.getElementById('input-stock-profit').value = item.income - item.cost;
@@ -1329,11 +1373,9 @@
                 document.getElementById('input-stock-name').value = '';
                 document.getElementById('input-stock-price').value = '';
                 document.getElementById('input-stock-shares').value = '';
-                
                 document.getElementById('input-stock-cost').value = '';
                 document.getElementById('input-stock-income').value = '';
                 document.getElementById('input-stock-profit').value = '';
-                
                 document.getElementById('display-stock-rate').innerText = '0.00%';
                 document.getElementById('display-stock-rate').className = 'text-warm-textLight text-sm ml-0.5 font-bold';
             }
@@ -1343,7 +1385,6 @@
         window.saveStock = async () => {
             const id = document.getElementById('input-stock-id').value;
             const name = document.getElementById('input-stock-name').value.trim() || "未命名股票";
-            
             const price = Number(document.getElementById('input-stock-price').value) || 0;
             const shares = Number(document.getElementById('input-stock-shares').value) || 0;
             
