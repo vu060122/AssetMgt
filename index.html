@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>LuminAsset</title>
     
-    <!-- iOS 桌面 App 支援設定 (直接讀取 GitHub 上的 icon.png) -->
+    <!-- iOS 桌面 App 支援設定 -->
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
     <meta name="apple-mobile-web-app-title" content="LuminAsset">
@@ -17,25 +17,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- 動態生成並注入手機桌面圖示 (無需外部圖片檔) -->
+    <script>
+        (function() {
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" fill="#FFFDF9" /><circle cx="150" cy="150" r="180" fill="#BCE3DF" opacity="0.4" /><circle cx="400" cy="380" r="200" fill="#FAD8D3" opacity="0.4" /><g transform="translate(180, 220) rotate(-15) translate(-180, -220)"><rect x="50" y="130" width="260" height="170" rx="24" fill="#88C0BB" /><rect x="75" y="155" width="210" height="120" rx="12" fill="#BCE3DF" opacity="0.6" /><circle cx="180" cy="215" r="35" fill="#FFFDF9" opacity="0.5" /></g><circle cx="340" cy="340" r="110" fill="#C2A37D" /><circle cx="340" cy="325" r="110" fill="#D4B895" /><circle cx="340" cy="325" r="85" fill="#FFF8EE" /><text x="340" y="367" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="120" fill="#5E4B43" text-anchor="middle">$</text><path d="M 120 340 Q 140 340 140 320 Q 140 340 160 340 Q 140 340 140 360 Q 140 340 120 340 Z" fill="#E3A39A" /><path d="M 390 130 Q 410 130 410 110 Q 410 130 430 130 Q 410 130 410 150 Q 410 130 390 130 Z" fill="#E3A39A" /></svg>`;
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; canvas.getContext('2d').drawImage(img, 0, 0, 512, 512);
+                const pngDataUrl = canvas.toDataURL('image/png');
+                const appleIcon = document.createElement('link'); appleIcon.rel = 'apple-touch-icon'; appleIcon.href = pngDataUrl; document.head.appendChild(appleIcon);
+                const standardIcon = document.createElement('link'); standardIcon.rel = 'icon'; standardIcon.type = 'image/png'; standardIcon.href = pngDataUrl; document.head.appendChild(standardIcon);
+            };
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+        })();
+    </script>
+
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         warm: {
-                            bg: '#FFFDF9',       /* 奶白背景 */
-                            card: '#FFF8EE',     /* 淺奶油卡片 */
-                            border: '#F2E8D8',   /* 柔和的邊框 */
-                            textDark: '#5E4B43', /* 深栗色文字 */
-                            textLight: '#9E887D',/* 淺咖色文字 */
-                            mint: '#88C0BB',     /* 莫蘭迪薄荷綠 */
-                            mintLight: '#BCE3DF',
-                            peach: '#E3A39A',    /* 莫蘭迪蜜桃粉 */
-                            peachLight: '#FAD8D3',
-                            latte: '#D4B895',    /* 莫蘭迪奶茶色 */
-                            latteLight: '#F2DEC4',
-                            stockGain: '#D66D60', /* 獲利紅 */
-                            stockLoss: '#5B9E97', /* 虧損綠 */
+                            bg: '#FFFDF9', card: '#FFF8EE', border: '#F2E8D8', textDark: '#5E4B43', textLight: '#9E887D',
+                            mint: '#88C0BB', mintLight: '#BCE3DF', peach: '#E3A39A', peachLight: '#FAD8D3', latte: '#D4B895', latteLight: '#F2DEC4',
+                            stockGain: '#D66D60', stockLoss: '#5B9E97',
                         }
                     }
                 }
@@ -43,23 +48,19 @@
         }
     </script>
     <style>
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"], input[type="date"] { -moz-appearance: textfield; }
         input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; transition: 0.2s; }
         input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
         
         .tab-active { color: #88C0BB; border-bottom: 3px solid #88C0BB; background-color: #FFFDF9; }
         .tab-inactive { color: #9E887D; border-bottom: 3px solid transparent; background-color: #FFF8EE; }
-
         .shadow-warm { box-shadow: 0 4px 15px -3px rgba(94, 75, 67, 0.06); }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         input[type="file"]::file-selector-button {
-            margin-right: 10px; border: none; background: #D4B895; padding: 8px 16px;
-            border-radius: 12px; color: #fff; cursor: pointer; transition: background .2s;
-            font-weight: bold; font-size: 12px;
+            margin-right: 10px; border: none; background: #D4B895; padding: 8px 16px; border-radius: 12px; color: #fff; cursor: pointer; transition: background .2s; font-weight: bold; font-size: 12px;
         }
         input[type="file"]::file-selector-button:hover { background: #C2A37D; }
     </style>
@@ -76,6 +77,10 @@
                 LuminAsset
             </h1>
             <div class="flex items-center gap-3">
+                <!-- 隱藏金額按鈕 -->
+                <button onclick="window.toggleVisibility()" class="text-white/90 hover:text-white transition" title="隱藏/顯示金額">
+                    <i id="visibility-icon" class="fa-solid fa-eye text-lg"></i>
+                </button>
                 <div id="sync-status" class="text-xs font-medium bg-white/20 px-3 py-1.5 rounded-full tracking-wide transition-colors duration-300">
                     <i class="fa-solid fa-spinner fa-spin mr-1"></i>讀取中
                 </div>
@@ -231,13 +236,17 @@
                     <div class="bg-white rounded-2xl p-4 shadow-warm border border-warm-border">
                         <div class="flex items-center gap-2 mb-3"><i class="fa-solid fa-filter text-warm-textLight text-xs"></i><span class="text-xs font-bold text-warm-textDark tracking-widest">進階篩選</span></div>
                         <div class="grid grid-cols-3 gap-2">
-                            <div><select id="filter-stock-year" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint"><option value="all">所有年份</option></select></div>
+                            <div>
+                                <select id="filter-stock-year" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint"><option value="all">所有年份</option></select>
+                            </div>
                             <div>
                                 <select id="filter-stock-type" onchange="window.renderStocksTab()" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint">
                                     <option value="all">所有交易</option><option value="現賣">現賣</option><option value="當沖">當沖</option>
                                 </select>
                             </div>
-                            <div><input type="text" id="filter-stock-name" oninput="window.renderStocksTab()" placeholder="輸入股名" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint placeholder:font-normal placeholder:text-warm-textLight/60"></div>
+                            <div>
+                                <input type="text" id="filter-stock-name" oninput="window.renderStocksTab()" placeholder="輸入股名" class="w-full bg-warm-bg border border-warm-border text-warm-textDark rounded-xl px-2 py-2 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-warm-mint placeholder:font-normal placeholder:text-warm-textLight/60">
+                            </div>
                         </div>
                     </div>
 
@@ -265,6 +274,7 @@
                         <div id="list-history" class="space-y-2"></div>
                     </div>
                 </div>
+
             </div>
 
             <!-- 全局最後修改時間註記 -->
@@ -422,7 +432,7 @@
             </div>
         </div>
 
-        <!-- 模態框：股票損益 -->
+        <!-- 模態框：股票損益 (智慧推算版) -->
         <div id="modal-stock" class="fixed inset-0 bg-[#5E4B43]/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50 opacity-0 transition-opacity duration-300">
             <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform scale-95 transition-transform duration-300 border border-warm-border max-h-[90vh] overflow-y-auto no-scrollbar">
                 <h3 id="stock-modal-title" class="text-lg sm:text-xl font-bold text-warm-textDark mb-5 text-center tracking-wide"><i class="fa-solid fa-money-bill-trend-up mr-2 text-warm-latte"></i>紀錄股票損益</h3>
@@ -515,8 +525,13 @@
 
         let state = { assets: { cash: 0, stocks: 0 }, otherAssets: [], activeIncomes: [], passiveIncomes: [], stockRecords: [], history: [], lastModified: null };
         let auth, db, dbRef, currentUser = null;
-        let growthChartInstance = null; let stockEditHistory = [];
+        let growthChartInstance = null;
+        let stockEditHistory = [];
+        
+        // --- 隱藏金額狀態管理 ---
+        let isHidden = localStorage.getItem('LuminAsset_isHidden') === 'true';
 
+        // 1. 本地備份引擎 (IndexedDB)
         const getLocalDB = () => new Promise((resolve, reject) => {
             const request = indexedDB.open('LuminAssetDB', 5); 
             request.onupgradeneeded = (e) => { const db = e.target.result; if (!db.objectStoreNames.contains('store')) db.createObjectStore('store'); };
@@ -533,6 +548,7 @@
             catch(e) { return null; }
         };
 
+        // 2. 資料匯入匯出與遷移邏輯
         window.openSettingsModal = () => showModal('settings');
         window.exportData = () => {
             const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -581,11 +597,18 @@
             if (state.history.length === 0 && calculateTotalAssets() > 0) updateAssetHistory();
         };
 
+        // 3. 雲端初始化
         const initApp = async () => {
             setStatus("讀取中");
+            
+            // 初始化遮蔽按鈕 UI
+            const eyeIcon = document.getElementById('visibility-icon');
+            if (isHidden) { eyeIcon.classList.remove('fa-eye'); eyeIcon.classList.add('fa-eye-slash'); }
+
             const configString = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
             const localData = await loadFromLocal();
             if (localData) { migrateData(localData); renderAll(); }
+
             if (configString) {
                 try {
                     const firebaseConfig = JSON.parse(configString); const app = initializeApp(firebaseConfig);
@@ -618,23 +641,50 @@
             if(msg === '讀取中' || msg === '儲存中') el.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> ${msg}`;
         };
 
-        const formatMoney = (amount) => Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
-        const formatPct = (num) => (num > 0 ? '+' : '') + Number(num).toFixed(2) + '%';
+        // --- 全域數字格式化 (含遮蔽邏輯) ---
+        window.toggleVisibility = () => {
+            isHidden = !isHidden;
+            localStorage.setItem('LuminAsset_isHidden', isHidden);
+            const icon = document.getElementById('visibility-icon');
+            if (isHidden) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); } 
+            else { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
+            renderAll();
+        };
 
+        const formatMoney = (amount) => {
+            if (isHidden) return '******';
+            return Number(amount).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        };
+        
+        const formatProfitVal = (amount) => {
+            if (isHidden) return '******';
+            return (amount >= 0 ? '+$' : '-$') + Number(Math.abs(amount)).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        };
+
+        const formatPct = (num) => {
+            if (isHidden) return '***%';
+            return (num > 0 ? '+' : '') + Number(num).toFixed(2) + '%';
+        };
+
+        // 4. 畫面渲染
         window.renderAll = () => { renderAssets(); renderIncomes(); renderStocksTab(); renderGrowthTab(); document.getElementById('last-modified-footer').innerHTML = `<i class="fa-regular fa-clock mr-1.5"></i>最後修改：${formatLastModified(state.lastModified)}`; };
 
         const renderAssets = () => {
             const cash = state.assets.cash || 0; const stocks = state.assets.stocks || 0;
             const othersTotal = state.otherAssets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
             const total = cash + stocks + othersTotal;
+            
             document.getElementById('display-total-assets').innerText = '$' + formatMoney(total);
             document.getElementById('display-cash-amt').innerText = '$' + formatMoney(cash);
             document.getElementById('display-stocks-amt').innerText = '$' + formatMoney(stocks);
+            
             const sumGroup = document.getElementById('others-summary-group');
             if(othersTotal > 0) { sumGroup.classList.remove('hidden'); document.getElementById('display-others-total').innerText = '$' + formatMoney(othersTotal); } else sumGroup.classList.add('hidden');
+
             const safePct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
             document.getElementById('display-cash-pct').innerText = safePct(cash) + '%'; document.getElementById('display-stocks-pct').innerText = safePct(stocks) + '%';
             document.getElementById('bar-cash').style.width = safePct(cash) + '%'; document.getElementById('bar-stocks').style.width = safePct(stocks) + '%'; document.getElementById('bar-others').style.width = safePct(othersTotal) + '%';
+
             const otherAssetsContainer = document.getElementById('list-other-assets'); const emptyOther = document.getElementById('empty-other-assets'); otherAssetsContainer.innerHTML = '';
             if (state.otherAssets.length === 0) emptyOther.classList.remove('hidden');
             else {
@@ -733,10 +783,11 @@
             let filterTotalProfit = 0; filtered.forEach(s => filterTotalProfit += (s.income - s.cost));
 
             const totalEl = document.getElementById('display-stock-filter-total');
-            totalEl.innerText = (filterTotalProfit >= 0 ? '+$' : '-$') + formatMoney(Math.abs(filterTotalProfit));
+            totalEl.innerText = formatProfitVal(filterTotalProfit);
             totalEl.className = `text-4xl font-bold tracking-tight mb-5 relative z-10 ${filterTotalProfit >= 0 ? 'text-white' : 'text-white/80'}`;
-            document.getElementById('display-stock-month-total').innerText = (monthTotal>=0?'+$':'-$') + formatMoney(Math.abs(monthTotal));
-            document.getElementById('display-stock-year-total').innerText = (yearTotal>=0?'+$':'-$') + formatMoney(Math.abs(yearTotal));
+
+            document.getElementById('display-stock-month-total').innerText = formatProfitVal(monthTotal);
+            document.getElementById('display-stock-year-total').innerText = formatProfitVal(yearTotal);
 
             const container = document.getElementById('list-stocks'); const emptyState = document.getElementById('empty-stocks'); container.innerHTML = '';
             if (filtered.length === 0) emptyState.classList.remove('hidden');
@@ -756,13 +807,13 @@
                                     <span class="text-[10px] text-warm-textLight tracking-widest"><i class="fa-regular fa-calendar mr-1"></i>${s.date}</span>
                                 </div>
                                 <div class="text-right">
-                                    <div class="font-bold text-lg ${pClass} tracking-tight">${profit >= 0 ? '+' : ''}${formatMoney(profit)}</div>
+                                    <div class="font-bold text-lg ${pClass} tracking-tight">${formatProfitVal(profit)}</div>
                                     <div class="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded border ${bgBadge} ${pClass} mt-0.5">${formatPct(returnRate)}</div>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center text-xs text-warm-textDark font-medium px-1">
                                 <div class="flex gap-4">
-                                    <div><span class="text-warm-textLight mr-1">售價</span>${s.price}</div>
+                                    <div><span class="text-warm-textLight mr-1">售價</span>${isHidden ? '***' : Number(s.price).toLocaleString('en-US')}</div>
                                     <div><span class="text-warm-textLight mr-1">股數</span>${formatMoney(s.shares)}</div>
                                 </div>
                                 <div class="flex items-center gap-1">
@@ -790,7 +841,7 @@
                 recentHistory.forEach((item, index) => {
                     const diff = item.total - (recentHistory[index+1]?.total || item.total);
                     const diffHtml = index < recentHistory.length - 1 && diff !== 0
-                        ? `<span class="text-[10px] ${diff>0?'text-warm-mint bg-warm-mintLight/30':'text-warm-stockGain bg-warm-peachLight/30'} px-1.5 py-0.5 rounded ml-2 font-bold">${diff>0?'+':''}${formatMoney(diff)}</span>` : '';
+                        ? `<span class="text-[10px] ${diff>0?'text-warm-mint bg-warm-mintLight/30':'text-warm-stockGain bg-warm-peachLight/30'} px-1.5 py-0.5 rounded ml-2 font-bold">${isHidden ? '***' : (diff>0?'+':'') + Number(diff).toLocaleString('en-US')}</span>` : '';
                     historyContainer.innerHTML += `
                         <div class="list-card flex justify-between items-center bg-white p-3.5 sm:p-4 rounded-2xl border border-warm-border shadow-sm">
                             <div class="flex items-center gap-2">
@@ -824,9 +875,9 @@
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#5E4B43', titleFont: { family: 'sans-serif', size: 11 }, bodyFont: { family: 'sans-serif', size: 13, weight: 'bold' }, padding: 10, callbacks: { label: (context) => ' NT$ ' + context.parsed.y.toLocaleString('en-US') } } },
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#5E4B43', titleFont: { family: 'sans-serif', size: 11 }, bodyFont: { family: 'sans-serif', size: 13, weight: 'bold' }, padding: 10, callbacks: { label: (context) => isHidden ? ' NT$ ******' : ' NT$ ' + context.parsed.y.toLocaleString('en-US') } } },
                     scales: {
-                        y: { beginAtZero: false, grid: { color: '#F2E8D8', drawBorder: false }, ticks: { color: '#9E887D', font: { size: 10, weight: 'bold' }, callback: v => v >= 10000 ? (v / 10000) + ' 萬' : v } },
+                        y: { beginAtZero: false, grid: { color: '#F2E8D8', drawBorder: false }, ticks: { color: '#9E887D', font: { size: 10, weight: 'bold' }, callback: v => isHidden ? '***' : (v >= 10000 ? (v / 10000) + ' 萬' : v) } },
                         x: { grid: { display: false }, ticks: { color: '#9E887D', font: { size: 9, weight: 'bold' } } }
                     }
                 }
