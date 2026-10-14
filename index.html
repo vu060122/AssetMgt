@@ -18,7 +18,7 @@
     <!-- 動態生成並注入手機桌面圖示 (無需外部圖片檔) -->
     <script>
         (function() {
-            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" fill="#FFFDF9" /><circle cx="150" cy="150" r="180" fill="#BCE3DF" opacity="0.4" /><circle cx="400" cy="380" r="200" fill="#FAD8D3" opacity="0.4" /><g transform="translate(180, 220) rotate(-15) translate(-180, -220)"><rect x="50" y="130" width="260" height="170" rx="24" fill="#88C0BB" /><rect x="75" y="155" width="210" height="120" rx="12" fill="#BCE3DF" opacity="0.6" /><circle cx="180" cy="215" r="35" fill="#FFFDF9" opacity="0.5" /></g><circle cx="340" cy="340" r="110" fill="#C2A37D" /><circle cx="340" cy="325" r="110" fill="#D4B895" /><circle cx="340" cy="325" r="85" fill="#FFF8EE" /><text x="340" y="367" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="120" fill="#5E4B43" text-anchor="middle">$</text><path d="M 120 340 Q 140 340 140 320 Q 140 340 160 340 Q 140 340 140 360 Q 140 340 120 340 Z" fill="#E3A39A" /><path d="M 390 130 Q 410 130 410 110 Q 410 130 430 130 Q 410 130 410 150 Q 410 130 390 130 Z" fill="#E3A39A" /></svg>`;
+            const svgData = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512"><rect width="512" height="512" fill="#FFFDF9" /><circle cx="150" cy="150" r="180" fill="#BCE3DF" opacity="0.4" /><circle cx="400" cy="380" r="200" fill="#FAD8D3" opacity="0.4" /><g transform="translate(180, 220) rotate(-15) translate(-180, -220)"><rect x="50" y="130" width="260" height="170" rx="24" fill="#88C0BB" /><rect x="75" y="155" width="210" height="120" rx="12" fill="#BCE3DF" opacity="0.6" /><circle cx="180" cy="215" r="35" fill="#FFFDF9" opacity="0.5" /></g><circle cx="340" cy="340" r="110" fill="#C2A37D" /><circle cx="340" cy="325" r="110" fill="#D4B895" /><circle cx="340" cy="325" r="85" fill="#FFF8EE" /><text x="340" y="367" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="120" fill="#5E4B43" text-anchor="middle">$</text><path d="M 120 340 Q 140 340 140 340 160 340 Q 140 340 140 360 Q 140 340 120 340 Z" fill="#E3A39A" /><path d="M 390 130 Q 410 130 410 110 Q 410 130 430 130 Q 410 130 410 150 Q 410 130 390 130 Z" fill="#E3A39A" /></svg>`;
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas'); canvas.width = 512; canvas.height = 512; canvas.getContext('2d').drawImage(img, 0, 0, 512, 512);
@@ -68,7 +68,7 @@
     <!-- 主容器 -->
     <div class="max-w-md mx-auto min-h-screen bg-warm-bg relative shadow-xl overflow-hidden flex flex-col border-x border-warm-border">
         
-        <!-- 頂部標題列 (修正字體大小與不換行設定) -->
+        <!-- 頂部標題列 -->
         <header class="bg-warm-mint text-white px-4 sm:px-6 py-3 sm:py-4 z-20 flex justify-between items-center relative shadow-sm">
             <h1 class="text-base sm:text-lg font-bold tracking-wide flex items-center whitespace-nowrap truncate mr-2">
                 <i class="fa-solid fa-wallet mr-2 text-white/90 text-lg sm:text-xl"></i>
@@ -154,8 +154,9 @@
                         <div class="flex justify-between items-end mb-3 sm:mb-4 px-1 mt-6 sm:mt-8">
                             <div class="flex items-center gap-2 sm:gap-3">
                                 <h3 class="font-bold text-warm-textDark text-sm sm:text-base flex items-center tracking-wide"><i class="fa-solid fa-gem text-warm-latte mr-1.5 sm:mr-2"></i>其他投資</h3>
-                                <div class="text-right hidden bg-warm-card px-2 py-1 rounded-lg border border-warm-border" id="others-summary-group">
-                                    <div id="display-others-total" class="font-bold text-warm-textDark text-xs">$0</div>
+                                <div class="flex items-center gap-1.5 hidden" id="others-summary-group">
+                                    <div id="display-others-total" class="font-bold text-warm-textDark text-xs sm:text-sm bg-warm-card px-2 py-0.5 rounded-lg border border-warm-border shadow-sm">$0</div>
+                                    <div id="display-others-pct" class="text-[10px] sm:text-[11px] font-bold text-warm-latte bg-warm-latteLight/20 px-1.5 py-0.5 rounded border border-warm-latteLight/50">0%</div>
                                 </div>
                             </div>
                             <button onclick="window.openOtherAssetModal()" class="text-warm-latte bg-warm-latteLight/30 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-warm-latteLight/60 transition tracking-wider shadow-sm flex items-center"><i class="fa-solid fa-plus mr-1 text-[10px]"></i>新增</button>
@@ -640,14 +641,8 @@
 
         const setStatus = (msg) => {
             const el = document.getElementById('sync-status');
-            el.querySelector('span').innerText = msg;
-            if (msg.includes('同步') || msg.includes('存檔') || msg.includes('備份')) {
-                el.querySelector('i').className = "fa-solid fa-cloud-check mr-1";
-            } else if (msg === '讀取中' || msg === '儲存中') {
-                el.querySelector('i').className = "fa-solid fa-circle-notch fa-spin mr-1";
-            } else {
-                el.querySelector('i').className = "fa-solid fa-cloud mr-1";
-            }
+            el.innerHTML = msg.includes('同步') || msg.includes('存檔') || msg.includes('備份') ? `<i class="fa-solid fa-cloud-check mr-1"></i> ${msg}` : `<i class="fa-solid fa-cloud mr-1"></i> ${msg}`;
+            if(msg === '讀取中' || msg === '儲存中') el.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-1"></i> ${msg}`;
         };
 
         // --- 全域數字格式化 (含遮蔽邏輯) ---
@@ -688,11 +683,21 @@
             document.getElementById('display-stocks-amt').innerText = '$' + formatMoney(stocks);
             
             const sumGroup = document.getElementById('others-summary-group');
-            if(othersTotal > 0) { sumGroup.classList.remove('hidden'); document.getElementById('display-others-total').innerText = '$' + formatMoney(othersTotal); } else sumGroup.classList.add('hidden');
+            if(othersTotal > 0) { 
+                sumGroup.classList.remove('hidden'); 
+                document.getElementById('display-others-total').innerText = '$' + formatMoney(othersTotal); 
+            } else { sumGroup.classList.add('hidden'); }
 
             const safePct = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
-            document.getElementById('display-cash-pct').innerText = safePct(cash) + '%'; document.getElementById('display-stocks-pct').innerText = safePct(stocks) + '%';
-            document.getElementById('bar-cash').style.width = safePct(cash) + '%'; document.getElementById('bar-stocks').style.width = safePct(stocks) + '%'; document.getElementById('bar-others').style.width = safePct(othersTotal) + '%';
+            const formatAssetPct = (val) => isHidden ? '***%' : safePct(val) + '%';
+            
+            document.getElementById('display-cash-pct').innerText = formatAssetPct(cash); 
+            document.getElementById('display-stocks-pct').innerText = formatAssetPct(stocks);
+            document.getElementById('display-others-pct').innerText = formatAssetPct(othersTotal);
+
+            document.getElementById('bar-cash').style.width = safePct(cash) + '%'; 
+            document.getElementById('bar-stocks').style.width = safePct(stocks) + '%'; 
+            document.getElementById('bar-others').style.width = safePct(othersTotal) + '%';
 
             const otherAssetsContainer = document.getElementById('list-other-assets'); const emptyOther = document.getElementById('empty-other-assets'); otherAssetsContainer.innerHTML = '';
             if (state.otherAssets.length === 0) emptyOther.classList.remove('hidden');
